@@ -9,6 +9,16 @@ class PlusButton extends React.Component {
   }
 }
 
+class MinusButton extends React.Component {
+  render() {
+    return (
+      <button onClick={this.props.handleClick}>
+        -
+      </button>
+    )
+  }
+}
+
 class CountApp extends React.Component {
   constructor(props) {
     super(props);
@@ -23,6 +33,12 @@ class CountApp extends React.Component {
     })
   }
 
+  handleMinusButtonClick() {
+    this.setState({
+      count: this.state.count - 1,
+    })
+  }
+
   render() {
     return (
       <>
@@ -30,6 +46,9 @@ class CountApp extends React.Component {
         <div>{this.state.count}</div>
         <PlusButton
           handleClick={() => this.handlePlusButtonClick()}
+        />
+        <MinusButton
+          handleClick={() => this.handleMinusButtonClick()} 
         />
       </>
     )
