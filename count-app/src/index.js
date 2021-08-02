@@ -1,20 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-class PlusButton extends React.Component {
+class Button extends React.Component {
   render() {
     return (
-      <button onClick={this.props.handleClick}>+</button>
-    )
-  }
-}
-
-class MinusButton extends React.Component {
-  render() {
-    return (
-      <button onClick={this.props.handleClick}>
-        -
-      </button>
+      <button onClick={this.props.handleClick}>{this.props.buttonText}</button>
     )
   }
 }
@@ -32,12 +22,14 @@ class CountApp extends React.Component {
       <>
         <h1>Count App</h1>
         <div>{this.state.count}</div>
-        <PlusButton
+        <Button
+          buttonText='+'
           handleClick={() => this.setState({
             count: this.state.count + 1,
           })}
         />
-        <MinusButton
+        <Button
+          buttonText='-'
           handleClick={() => this.setState({
             count: this.state.count - 1,
           })} 
