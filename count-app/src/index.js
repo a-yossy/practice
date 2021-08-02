@@ -27,28 +27,20 @@ class CountApp extends React.Component {
     };
   }
 
-  handlePlusButtonClick() {
-    this.setState({
-      count: this.state.count + 1,
-    })
-  }
-
-  handleMinusButtonClick() {
-    this.setState({
-      count: this.state.count - 1,
-    })
-  }
-
   render() {
     return (
       <>
         <h1>Count App</h1>
         <div>{this.state.count}</div>
         <PlusButton
-          handleClick={() => this.handlePlusButtonClick()}
+          handleClick={() => this.setState({
+            count: this.state.count + 1,
+          })}
         />
         <MinusButton
-          handleClick={() => this.handleMinusButtonClick()} 
+          handleClick={() => this.setState({
+            count: this.state.count - 1,
+          })} 
         />
       </>
     )
