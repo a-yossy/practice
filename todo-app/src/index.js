@@ -9,7 +9,7 @@ class TodoElement extends React.Component {
   render() {
     return(
       <li>
-        <spna>{this.props.element.content}</spna>
+        <span>{this.props.element.content}</span>
         <button onClick={() => this.onDelete()}>削除</button>
       </li>
     )
