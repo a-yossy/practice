@@ -6,11 +6,16 @@ class TodoElement extends React.Component {
     this.props.onDelete(this.props.element.id)
   }
 
+  onEdit() {
+    this.props.onEdit(this.props.element.id)
+  }
+
   render() {
     return(
       <li>
         <span>{this.props.element.content}</span>
         <button onClick={() => this.onDelete()}>削除</button>
+        <button onClick={() => this.onEdit()}>編集</button>
       </li>
     )
   }
@@ -67,6 +72,20 @@ class TodoApp extends React.Component {
     })
   }
 
+  edit(id) {
+    const edittodoElement = {
+      content: this.state.value,
+      id: id,
+    }
+    let todoList = this.state.todoList.concat()
+    todoList.splice(id - 1, 1)
+    todoList.splice(id - 1, 0, edittodoElement)
+    this.setState({
+      todoList: todoList.concat(),
+      value: "",
+    })
+  }
+
   handleDelete(id) {
     let todoList = this.state.todoList.concat()
     let index = 0
@@ -82,11 +101,10 @@ class TodoApp extends React.Component {
   render() {
     const todoListNode = this.state.todoList.map(element => {
       return (
-        <TodoElement
-          key={element.id}
-          element={element}
-          onDelete={() => this.handleDelete()}
-        />
+        <li key={element.id}>
+          {element.content}
+          <button onClick={() => this.edit(element.id)}>編集</button>
+        </li>
       )
     })
 
