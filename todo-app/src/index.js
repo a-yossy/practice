@@ -58,6 +58,8 @@ class TodoApp extends React.Component {
     this.state={
       todoList: [],
       value: "",
+      isEditMode: false,
+      editTodoId: 0,
     }
   }
 
@@ -72,18 +74,14 @@ class TodoApp extends React.Component {
     })
   }
 
-  edit(id) {
-    const edittodoElement = {
-      content: this.state.value,
-      id: id,
-    }
+  edit() {    
     let todoList = this.state.todoList.concat()
-    todoList.splice(id - 1, 1)
-    todoList.splice(id - 1, 0, edittodoElement)
-    this.setState({
-      todoList: todoList.concat(),
-      value: "",
+    todoList.map((element) => {
+      if (element.id === this.state.editTodoId) {
+        element.content = this.state.value
+      }
     })
+    this.setState({todoList: todoList, value: '', isEditMode: false, editTodoId: 0})
   }
 
   handleDelete(id) {
@@ -103,7 +101,7 @@ class TodoApp extends React.Component {
       return (
         <li key={element.id}>
           {element.content}
-          <button onClick={() => this.edit(element.id)}>編集</button>
+          <button onClick={() => this.setState({isEditMode: true, value: element.content, editTodoId: element.id,})}>編集</button>
         </li>
       )
     })
@@ -111,11 +109,21 @@ class TodoApp extends React.Component {
     return (
       <div>
         <h1>TODO App</h1>
-        <AddTodo
-          {...this.state}
-          onChange={e => this.onChange(e)}
-          add={todoElement => this.add(todoElement)}
-        />
+        {!this.state.isEditMode
+          ? <AddTodo
+              {...this.state}
+              onChange={e => this.onChange(e)}
+              add={todoElement => this.add(todoElement)}
+            />
+          : <>
+              <input
+                type='text'
+                value={this.state.value}
+                onChange={(e) => this.setState({value: e.target.value,})}
+              />
+              <button onClick={() => this.edit()}>編集</button>
+            </>
+        }
         <ul>
           {todoListNode}
         </ul>
