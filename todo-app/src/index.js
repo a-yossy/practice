@@ -47,6 +47,43 @@ class AddTodo extends React.Component {
   }
 }
 
+class EditTodo extends React.Component {
+  onChange(e) {
+    this.props.onChange({
+      value: e.target.value,
+    })
+  }
+
+  edit() {
+    let todoList = this.props.todoList.concat()
+    todoList.map((element) => {
+      if (element.id === this.props.editTodoId) {
+        element.content = this.props.value
+      }
+    })
+    this.props.edit(todoList)
+  }
+
+  cancel() {
+    let todoList = this.props.todoList.concat()
+    this.props.edit(todoList)
+  }
+
+  render() {
+    return(
+      <div>
+        <input
+          type="text"
+          value={this.props.value}
+          onChange={e => this.onChange(e)}
+        />
+        <button onClick={() => this.edit()}>更新</button>
+        <button onClick={() => this.cancel()}>キャンセル</button>
+      </div>
+    )
+  }
+}
+
 
 class TodoApp extends React.Component {
   constructor() {
@@ -70,13 +107,7 @@ class TodoApp extends React.Component {
     })
   }
 
-  edit() {    
-    let todoList = this.state.todoList.concat()
-    todoList.map((element) => {
-      if (element.id === this.state.editTodoId) {
-        element.content = this.state.value
-      }
-    })
+  edit(todoList) {    
     this.setState({todoList: todoList, value: '', isEditMode: false, editTodoId: 0})
   }
 
@@ -107,23 +138,22 @@ class TodoApp extends React.Component {
       <div>
         <h1>TODO App</h1>
         {!this.state.isEditMode
-          ? <AddTodo
+          ? <>
+              <AddTodo
+                {...this.state}
+                onChange={e => this.onChange(e)}
+                add={todoElement => this.add(todoElement)}
+              />
+              <ul>
+                {todoListNode}
+              </ul>
+            </>
+          : <EditTodo
               {...this.state}
               onChange={e => this.onChange(e)}
-              add={todoElement => this.add(todoElement)}
+              edit={todoList => this.edit(todoList)}
             />
-          : <>
-              <input
-                type='text'
-                value={this.state.value}
-                onChange={(e) => this.setState({value: e.target.value,})}
-              />
-              <button onClick={() => this.edit()}>編集</button>
-            </>
         }
-        <ul>
-          {todoListNode}
-        </ul>
       </div>
     );
   }
