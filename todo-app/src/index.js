@@ -65,8 +65,7 @@ class EditTodo extends React.Component {
   }
 
   cancel() {
-    let todoList = this.props.todoList.concat()
-    this.props.edit(todoList)
+    this.props.cancel()
   }
 
   render() {
@@ -111,6 +110,10 @@ class TodoApp extends React.Component {
     this.setState({todoList: todoList, value: '', isEditMode: false, editTodoId: 0})
   }
 
+  cancel() {
+    this.setState({value: '', isEditMode: false, editTodoId: 0})
+  }
+
   handleDelete(id) {
     let todoList = this.state.todoList.concat()
     let index = 0
@@ -152,6 +155,7 @@ class TodoApp extends React.Component {
               {...this.state}
               onChange={e => this.onChange(e)}
               edit={todoList => this.edit(todoList)}
+              cancel={() => this.cancel()}
             />
         }
       </div>
