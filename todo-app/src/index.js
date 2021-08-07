@@ -10,9 +10,23 @@ class TodoElement extends React.Component {
     return(
       <li key={this.props.element.id}>
         <span>{this.props.element.content}</span>
-        <button onClick={() => this.onDelete()}>削除</button>
-        <button onClick={() => this.props.onEdit()}>編集</button>
+        <Button
+          buttonText='編集'
+          onClick={() => this.props.onEdit()}
+        />
+        <Button
+          buttonText='削除'
+          onClick={() => this.onDelete()}
+        />
       </li>
+    )
+  }
+}
+
+class Button extends React.Component {
+  render() {
+    return (
+      <button onClick={this.props.onClick}>{this.props.buttonText}</button>
     )
   }
 }
@@ -41,7 +55,10 @@ class AddTodo extends React.Component {
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
-        <button onClick={() => this.onAdd()}>追加</button>
+        <Button
+          buttonText='追加'
+          onClick={() => this.onAdd()}
+        />
       </div>
     )
   }
@@ -76,8 +93,14 @@ class UpdateTodo extends React.Component {
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
-        <button onClick={() => this.onUpdate()}>更新</button>
-        <button onClick={() => this.onCancel()}>キャンセル</button>
+        <Button
+          buttonText='更新'
+          onClick={() => this.onUpdate()}
+        />
+        <Button
+          buttonText='キャンセル'
+          onClick={() => this.onCancel()}
+        />
       </div>
     )
   }
