@@ -31,7 +31,7 @@ class Button extends React.Component {
   }
 }
 
-class Text extends React.Component {
+class TextInput extends React.Component {
   render() {
     return (
       <input
@@ -61,7 +61,7 @@ class AddTodo extends React.Component {
   render() {
     return(
       <div>
-        <Text
+        <TextInput
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
@@ -98,7 +98,7 @@ class UpdateTodo extends React.Component {
   render() {
     return(
       <div>
-        <Text
+        <TextInput
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
