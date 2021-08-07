@@ -6,16 +6,12 @@ class TodoElement extends React.Component {
     this.props.onDelete(this.props.element.id)
   }
 
-  onEdit() {
-    this.props.onEdit(this.props.element.id)
-  }
-
   render() {
     return(
-      <li>
+      <li key={this.props.element.id}>
         <span>{this.props.element.content}</span>
         <button onClick={() => this.onDelete()}>削除</button>
-        <button onClick={() => this.onEdit()}>編集</button>
+        <button onClick={() => this.props.onEdit()}>編集</button>
       </li>
     )
   }
@@ -99,10 +95,11 @@ class TodoApp extends React.Component {
   render() {
     const todoListNode = this.state.todoList.map(element => {
       return (
-        <li key={element.id}>
-          {element.content}
-          <button onClick={() => this.setState({isEditMode: true, value: element.content, editTodoId: element.id,})}>編集</button>
-        </li>
+        <TodoElement
+          element={element}
+          onDelete={() => this.handleDelete()}
+          onEdit={() => this.setState({isEditMode: true, value: element.content, editTodoId: element.id,})}
+        />
       )
     })
 
