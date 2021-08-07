@@ -47,7 +47,7 @@ class AddTodo extends React.Component {
   }
 }
 
-class EditTodo extends React.Component {
+class UpdateTodo extends React.Component {
   onChange(e) {
     this.props.onChange({
       value: e.target.value,
@@ -151,7 +151,7 @@ class TodoApp extends React.Component {
                 {todoListNode}
               </ul>
             </>
-          : <EditTodo
+          : <UpdateTodo
               {...this.state}
               onChange={e => this.handleChange(e)}
               onUpdate={todoList => this.handleUpdate(todoList)}
