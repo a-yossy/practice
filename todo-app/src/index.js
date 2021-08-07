@@ -10,9 +10,23 @@ class TodoElement extends React.Component {
     return(
       <li key={this.props.element.id}>
         <span>{this.props.element.content}</span>
-        <button onClick={() => this.onDelete()}>削除</button>
-        <button onClick={() => this.props.onEdit()}>編集</button>
+        <Button
+          buttonText='編集'
+          onClick={() => this.props.onEdit()}
+        />
+        <Button
+          buttonText='削除'
+          onClick={() => this.onDelete()}
+        />
       </li>
+    )
+  }
+}
+
+class Button extends React.Component {
+  render() {
+    return (
+      <button onClick={this.props.onClick}>{this.props.buttonText}</button>
     )
   }
 }
