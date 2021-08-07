@@ -25,12 +25,12 @@ class AddTodo extends React.Component {
     })
   }
 
-  add() {
+  onAdd() {
     const todoElement = {
       content: this.props.value,
       id: this.props.todoList.length + 1,
     }
-    this.props.add(todoElement)
+    this.props.onAdd(todoElement)
   }
 
   render() {
@@ -41,7 +41,7 @@ class AddTodo extends React.Component {
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
-        <button onClick={() => this.add()}>追加</button>
+        <button onClick={() => this.onAdd()}>追加</button>
       </div>
     )
   }
@@ -54,18 +54,18 @@ class EditTodo extends React.Component {
     })
   }
 
-  edit() {
+  onEdit() {
     let todoList = this.props.todoList.concat()
     todoList.map((element) => {
       if (element.id === this.props.editTodoId) {
         element.content = this.props.value
       }
     })
-    this.props.edit(todoList)
+    this.props.onEdit(todoList)
   }
 
-  cancel() {
-    this.props.cancel()
+  onCancel() {
+    this.props.onCancel()
   }
 
   render() {
@@ -76,8 +76,8 @@ class EditTodo extends React.Component {
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
-        <button onClick={() => this.edit()}>更新</button>
-        <button onClick={() => this.cancel()}>キャンセル</button>
+        <button onClick={() => this.onEdit()}>更新</button>
+        <button onClick={() => this.onCancel()}>キャンセル</button>
       </div>
     )
   }
@@ -95,22 +95,22 @@ class TodoApp extends React.Component {
     }
   }
 
-  onChange(key_value) {
+  handleChange(key_value) {
     this.setState(key_value)
   }
 
-  add(todoElement) {
+  handleAdd(todoElement) {
     this.setState({
       todoList: this.state.todoList.concat(todoElement),
       value: "",
     })
   }
 
-  edit(todoList) {    
+  handleEdit(todoList) {    
     this.setState({todoList: todoList, value: '', isEditMode: false, editTodoId: 0})
   }
 
-  cancel() {
+  handleCancel() {
     this.setState({value: '', isEditMode: false, editTodoId: 0})
   }
 
@@ -144,8 +144,8 @@ class TodoApp extends React.Component {
           ? <>
               <AddTodo
                 {...this.state}
-                onChange={e => this.onChange(e)}
-                add={todoElement => this.add(todoElement)}
+                onChange={e => this.handleChange(e)}
+                onAdd={todoElement => this.handleAdd(todoElement)}
               />
               <ul>
                 {todoListNode}
@@ -153,9 +153,9 @@ class TodoApp extends React.Component {
             </>
           : <EditTodo
               {...this.state}
-              onChange={e => this.onChange(e)}
-              edit={todoList => this.edit(todoList)}
-              cancel={() => this.cancel()}
+              onChange={e => this.handleChange(e)}
+              onEdit={todoList => this.handleEdit(todoList)}
+              onCancel={() => this.handleCancel()}
             />
         }
       </div>
