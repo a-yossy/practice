@@ -6,16 +6,12 @@ class TodoElement extends React.Component {
     this.props.onDelete(this.props.element.id)
   }
 
-  onEdit() {
-    this.props.onEdit(this.props.element.id)
-  }
-
   render() {
     return(
-      <li>
+      <li key={this.props.element.id}>
         <span>{this.props.element.content}</span>
         <button onClick={() => this.onDelete()}>削除</button>
-        <button onClick={() => this.onEdit()}>編集</button>
+        <button onClick={() => this.props.onEdit()}>編集</button>
       </li>
     )
   }
@@ -29,12 +25,12 @@ class AddTodo extends React.Component {
     })
   }
 
-  add() {
+  onAdd() {
     const todoElement = {
       content: this.props.value,
       id: this.props.todoList.length + 1,
     }
-    this.props.add(todoElement)
+    this.props.onAdd(todoElement)
   }
 
   render() {
@@ -45,7 +41,43 @@ class AddTodo extends React.Component {
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
-        <button onClick={() => this.add()}>追加</button>
+        <button onClick={() => this.onAdd()}>追加</button>
+      </div>
+    )
+  }
+}
+
+class UpdateTodo extends React.Component {
+  onChange(e) {
+    this.props.onChange({
+      value: e.target.value,
+    })
+  }
+
+  onUpdate() {
+    let todoList = this.props.todoList.concat()
+    todoList.map((element) => {
+      if (element.id === this.props.editTodoId) {
+        element.content = this.props.value
+      }
+    })
+    this.props.onUpdate(todoList)
+  }
+
+  onCancel() {
+    this.props.onCancel()
+  }
+
+  render() {
+    return(
+      <div>
+        <input
+          type="text"
+          value={this.props.value}
+          onChange={e => this.onChange(e)}
+        />
+        <button onClick={() => this.onUpdate()}>更新</button>
+        <button onClick={() => this.onCancel()}>キャンセル</button>
       </div>
     )
   }
@@ -63,25 +95,23 @@ class TodoApp extends React.Component {
     }
   }
 
-  onChange(key_value) {
+  handleChange(key_value) {
     this.setState(key_value)
   }
 
-  add(todoElement) {
+  handleAdd(todoElement) {
     this.setState({
       todoList: this.state.todoList.concat(todoElement),
       value: "",
     })
   }
 
-  edit() {    
-    let todoList = this.state.todoList.concat()
-    todoList.map((element) => {
-      if (element.id === this.state.editTodoId) {
-        element.content = this.state.value
-      }
-    })
+  handleUpdate(todoList) {    
     this.setState({todoList: todoList, value: '', isEditMode: false, editTodoId: 0})
+  }
+
+  handleCancel() {
+    this.setState({value: '', isEditMode: false, editTodoId: 0})
   }
 
   handleDelete(id) {
@@ -99,10 +129,11 @@ class TodoApp extends React.Component {
   render() {
     const todoListNode = this.state.todoList.map(element => {
       return (
-        <li key={element.id}>
-          {element.content}
-          <button onClick={() => this.setState({isEditMode: true, value: element.content, editTodoId: element.id,})}>編集</button>
-        </li>
+        <TodoElement
+          element={element}
+          onDelete={() => this.handleDelete()}
+          onEdit={() => this.setState({isEditMode: true, value: element.content, editTodoId: element.id,})}
+        />
       )
     })
 
@@ -110,23 +141,23 @@ class TodoApp extends React.Component {
       <div>
         <h1>TODO App</h1>
         {!this.state.isEditMode
-          ? <AddTodo
-              {...this.state}
-              onChange={e => this.onChange(e)}
-              add={todoElement => this.add(todoElement)}
-            />
-          : <>
-              <input
-                type='text'
-                value={this.state.value}
-                onChange={(e) => this.setState({value: e.target.value,})}
+          ? <>
+              <AddTodo
+                {...this.state}
+                onChange={e => this.handleChange(e)}
+                onAdd={todoElement => this.handleAdd(todoElement)}
               />
-              <button onClick={() => this.edit()}>編集</button>
+              <ul>
+                {todoListNode}
+              </ul>
             </>
+          : <UpdateTodo
+              {...this.state}
+              onChange={e => this.handleChange(e)}
+              onUpdate={todoList => this.handleUpdate(todoList)}
+              onCancel={() => this.handleCancel()}
+            />
         }
-        <ul>
-          {todoListNode}
-        </ul>
       </div>
     );
   }
