@@ -31,6 +31,17 @@ class Button extends React.Component {
   }
 }
 
+class Text extends React.Component {
+  render() {
+    return (
+      <input
+        type="text"
+        value={this.props.value}
+        onChange={this.props.onChange}
+      />
+    )
+  }
+}
 
 class AddTodo extends React.Component {
   onChange(e) {
@@ -50,8 +61,7 @@ class AddTodo extends React.Component {
   render() {
     return(
       <div>
-        <input
-          type="text"
+        <Text
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
@@ -88,8 +98,7 @@ class UpdateTodo extends React.Component {
   render() {
     return(
       <div>
-        <input
-          type="text"
+        <Text
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
