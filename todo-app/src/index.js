@@ -54,14 +54,14 @@ class EditTodo extends React.Component {
     })
   }
 
-  onEdit() {
+  onUpdate() {
     let todoList = this.props.todoList.concat()
     todoList.map((element) => {
       if (element.id === this.props.editTodoId) {
         element.content = this.props.value
       }
     })
-    this.props.onEdit(todoList)
+    this.props.onUpdate(todoList)
   }
 
   onCancel() {
@@ -76,7 +76,7 @@ class EditTodo extends React.Component {
           value={this.props.value}
           onChange={e => this.onChange(e)}
         />
-        <button onClick={() => this.onEdit()}>更新</button>
+        <button onClick={() => this.onUpdate()}>更新</button>
         <button onClick={() => this.onCancel()}>キャンセル</button>
       </div>
     )
@@ -106,7 +106,7 @@ class TodoApp extends React.Component {
     })
   }
 
-  handleEdit(todoList) {    
+  handleUpdate(todoList) {    
     this.setState({todoList: todoList, value: '', isEditMode: false, editTodoId: 0})
   }
 
@@ -154,7 +154,7 @@ class TodoApp extends React.Component {
           : <EditTodo
               {...this.state}
               onChange={e => this.handleChange(e)}
-              onEdit={todoList => this.handleEdit(todoList)}
+              onUpdate={todoList => this.handleUpdate(todoList)}
               onCancel={() => this.handleCancel()}
             />
         }
