@@ -9,7 +9,7 @@ class TodoElement extends React.Component {
   render() {
     return(
       <li key={this.props.element.id}>
-        <span>{this.props.element.id}</span>
+        <span>{this.props.element.content}</span>
         <Button
           buttonText='編集'
           onClick={() => this.props.onEdit()}
