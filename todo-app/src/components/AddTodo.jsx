@@ -12,7 +12,7 @@ class AddTodo extends React.Component {
   onAdd() {
     const todoElement = {
       content: this.props.value,
-      id: this.props.todoList.length + 1,
+      id: this.props.id + 1,
     }
     this.props.onAdd(todoElement)
   }
