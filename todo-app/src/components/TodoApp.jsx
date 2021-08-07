@@ -9,6 +9,7 @@ class TodoApp extends React.Component {
     this.state={
       todoList: [],
       value: "",
+      id: 0,
       isEditMode: false,
       editTodoId: 0,
     }
@@ -22,6 +23,7 @@ class TodoApp extends React.Component {
     this.setState({
       todoList: this.state.todoList.concat(todoElement),
       value: "",
+      id: this.state.id + 1,
     })
   }
 
