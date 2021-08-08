@@ -1,6 +1,6 @@
 import * as React from "react";
 import ReactDOM from "react-dom";
-import { useState } from 'react';
+const { useState } = React;
 
 
 const CountApp: React.FC = () => {
