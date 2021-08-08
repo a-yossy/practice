@@ -26,6 +26,7 @@ const TodoApp: React.FC = () => {
       newTodo
     ]);
     setIdNumber(idNumber + 1);
+    setValue("");
   };
 
   const todoListNode = todoList.map(element => {
