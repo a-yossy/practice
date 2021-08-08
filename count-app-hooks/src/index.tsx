@@ -16,25 +16,17 @@ const Button: React.FC<ButtonProps> = ({ buttonText, onClick }) => {
 const CountApp: React.FC = () => {
   const [count, setCount] = useState(0);
 
-  const plus = () => {
-    setCount(count + 1)
-  }
-
-  const minus = () => {
-    setCount(count - 1)
-  }
-
   return (
     <>
       <h1>Count App</h1>
       <div>{count}</div>
       <Button
         buttonText="+"
-        onClick={plus}
+        onClick={() => setCount(count + 1)}
       />
       <Button
         buttonText="-"
-        onClick={minus}
+        onClick={() => setCount(count - 1)}
       />
     </>
   )
