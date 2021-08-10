@@ -2,13 +2,13 @@ import React from "react";
 import ReactDOM from "react-dom";
 const { useState } = React;
 
-type TodoLists = {
+type TodoListElement = {
   content: string | number,
   id: number,
 }
 
 const TodoApp: React.FC = () => {
-  const [todoList, setTodoList] = useState<TodoLists[]>([]);
+  const [todoList, setTodoList] = useState<TodoListElement[]>([]);
   const [value, setValue] = useState("");
   const [idNumber, setIdNumber] = useState(0);
   
