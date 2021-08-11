@@ -12,11 +12,11 @@ const TodoApp: React.FC = () => {
   const [value, setValue] = useState<string | number>("");
   const [id, setIdNumber] = useState<number>(0);
   
-  const onChange: (e: React.ChangeEvent<HTMLInputElement>) => void = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onChange: (e: React.ChangeEvent<HTMLInputElement>) => void = (e) => {
     setValue(e.target.value)
   }
 
-  const add: () => void = () => {
+  const add = (): void => {
     const newTodo: TodoListElement = { 
       content: value, 
       id: id + 1,
