@@ -11,7 +11,10 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList }) => {
     <>
       {todoList.map((todoElement :TodoListElement) => {
         return(
-          <li key={todoElement.id}>{todoElement.content}</li>
+          <li key={todoElement.id}>
+            {todoElement.content}
+            <button>削除</button>
+          </li>
         );
       })}
     </>
