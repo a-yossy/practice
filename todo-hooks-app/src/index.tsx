@@ -26,9 +26,9 @@ type TodoListElement = {
 const TodoApp: React.FC = () => {
   const [todoList, setTodoList] = useState<TodoListElement[]>([]);
   const [value, setValue] = useState<string | number>("");
-  const [id, setIdNumber] = useState<number>(0);
+  const [id, setId] = useState<number>(0);
   
-  const onChange: (e: React.ChangeEvent<HTMLInputElement>) => void = (e) => {
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setValue(e.target.value)
   }
 
@@ -41,7 +41,7 @@ const TodoApp: React.FC = () => {
       ...todoList,
       newTodo
     ]);
-    setIdNumber(id + 1);
+    setId(id + 1);
     setValue("");
   };
   
