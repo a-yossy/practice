@@ -17,7 +17,7 @@ const TodoApp: React.FC = () => {
   }
 
   const add: () => void = () => {
-    const newTodo = { 
+    const newTodo: TodoListElement = { 
       content: value, 
       id: id + 1,
     }
