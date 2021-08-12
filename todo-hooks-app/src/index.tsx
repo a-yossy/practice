@@ -54,7 +54,7 @@ const TodoApp: React.FC = () => {
     let newTodoList: TodoListElement[] = todoList.concat()
     let index: number = 0
     newTodoList.map((element, idx) => {
-      if (element.id == id) {
+      if (element.id === id) {
         index = idx
       }
     })
