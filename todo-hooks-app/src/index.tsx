@@ -24,6 +24,25 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit 
   );
 }
 
+type AddTodoProps = {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  value: string | number,
+  onAdd: () => void,
+}
+
+const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, onAdd }) => {
+  return(
+    <>
+      <input
+        type="text"
+        value={value}
+        onChange={onChange}
+      />
+      <button onClick={onAdd}>追加</button>
+    </>
+  )
+}
+
 type TodoListElement = {
   content: string | number,
   id: number,
@@ -40,7 +59,7 @@ const TodoApp: React.FC = () => {
     setValue(e.target.value)
   }
 
-  const add = (): void => {
+  const handleAdd = (): void => {
     const newTodo: TodoListElement = { 
       content: value, 
       id: id + 1,
@@ -104,12 +123,11 @@ const TodoApp: React.FC = () => {
             <button onClick={handleCancel}>キャンセル</button>
           </>
         : <>
-            <input
-              type="text"
-              value={value}
+            <AddTodo
               onChange={onChange}
+              value={value}
+              onAdd={handleAdd}
             />
-            <button onClick={add}>追加</button>
             <ul>
               <TodoListNode
                 todoList={todoList}
