@@ -105,10 +105,6 @@ const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, todoList, edit
     })
     onUpdate(newTodoList)
   }
-
-  const cancel = (): void => {
-    onCancel()
-  }
   
   return(
     <>
@@ -122,7 +118,7 @@ const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, todoList, edit
       />
       <Button
         buttonText="キャンセル"
-        onClick={cancel}
+        onClick={onCancel}
       />
     </>
   )
