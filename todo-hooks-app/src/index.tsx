@@ -43,7 +43,7 @@ const Button: React.FC<ButtonProps> = ({ buttonText, onClick }) => {
 
 type TextInputProps = {
   value: string | number,
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  onChange: (e: string | number) => void,
 }
 
 const TextInput: React.FC<TextInputProps> = ({ value, onChange }) => {
@@ -51,13 +51,13 @@ const TextInput: React.FC<TextInputProps> = ({ value, onChange }) => {
     <input
       type="text"
       value={value}
-      onChange={onChange}
+      onChange={(e) => onChange(e.target.value)}
     />
   )
 }
 
 type AddTodoProps = {
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  onChange: (e: string | number) => void,
   value: string | number,
   id: number,
   onAdd: (todoElement: TodoListElement) => void,
@@ -87,7 +87,7 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
 }
 
 type UpdateTodoProps = {
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  onChange: (value: string | number) => void,
   value: string | number,
   todoList: TodoListElement[],
   editTodoId: number,
@@ -136,10 +136,6 @@ const TodoApp: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editTodoId, setEditTodoId] = useState<number>(0);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setValue(e.target.value)
-  }
-
   const handleAdd = (todoElement: TodoListElement): void => {
     setTodoList([
       ...todoList,
@@ -185,7 +181,7 @@ const TodoApp: React.FC = () => {
       <h1>TODO App</h1>
       {isEditMode 
         ? <UpdateTodo 
-            onChange={handleChange}
+            onChange={setValue}
             value={value}
             todoList={todoList}
             editTodoId={editTodoId}
@@ -194,7 +190,7 @@ const TodoApp: React.FC = () => {
           />
         : <>
             <AddTodo
-              onChange={handleChange}
+              onChange={setValue}
               value={value}
               id={id}
               onAdd={todoElement => handleAdd(todoElement)}
