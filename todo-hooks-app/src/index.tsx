@@ -65,7 +65,7 @@ type AddTodoProps = {
 
 const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
   const add = (): void => {
-    const todoElement = {
+    const todoElement: TodoListElement = {
       content: value,
       id: id + 1,
     }
