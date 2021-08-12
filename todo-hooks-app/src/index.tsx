@@ -97,7 +97,7 @@ type UpdateTodoProps = {
 
 const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, todoList, editTodoId, onUpdate, onCancel }) => {
   const update = (): void => {
-    let newTodoList = todoList.concat()
+    let newTodoList: TodoListElement[] = todoList.concat()
     newTodoList.map((todoElement) => {
       if (todoElement.id === editTodoId) {
         todoElement.content = value
