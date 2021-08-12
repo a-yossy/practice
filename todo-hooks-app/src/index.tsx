@@ -11,7 +11,7 @@ type TodoListNodeProps = {
 const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit }) => {
   return (
     <>
-      {todoList.map((todoElement :TodoListElement) => {
+      {todoList.map((todoElement: TodoListElement) => {
         return(
           <li key={todoElement.id}>
             {todoElement.content}
@@ -44,10 +44,19 @@ const Button: React.FC<ButtonProps> = ({ buttonText, onClick }) => {
 type AddTodoProps = {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
   value: string | number,
-  onAdd: () => void,
+  id: number,
+  onAdd: (todoElement: TodoListElement) => void,
 }
 
-const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, onAdd }) => {
+const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
+  const add = (): void => {
+    const todoElement = {
+      content: value,
+      id: id + 1,
+    }
+    onAdd(todoElement)
+  }
+
   return(
     <>
       <input
@@ -57,7 +66,7 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, onAdd }) => {
       />
       <Button
         buttonText="追加"
-        onClick={onAdd}
+        onClick={add}
       />
     </>
   )
@@ -101,19 +110,15 @@ const TodoApp: React.FC = () => {
   const [id, setId] = useState<number>(0);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editTodoId, setEditTodoId] = useState<number>(0);
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setValue(e.target.value)
   }
 
-  const handleAdd = (): void => {
-    const newTodo: TodoListElement = { 
-      content: value, 
-      id: id + 1,
-    }
+  const handleAdd = (todoElement: TodoListElement): void => {
     setTodoList([
       ...todoList,
-      newTodo
+      todoElement
     ]);
     setId(id + 1);
     setValue("");
@@ -170,7 +175,8 @@ const TodoApp: React.FC = () => {
             <AddTodo
               onChange={handleChange}
               value={value}
-              onAdd={handleAdd}
+              id={id}
+              onAdd={todoElement => handleAdd(todoElement)}
             />
             <ul>
               <TodoListNode
