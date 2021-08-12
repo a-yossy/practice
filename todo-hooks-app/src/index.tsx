@@ -41,6 +41,21 @@ const Button: React.FC<ButtonProps> = ({ buttonText, onClick }) => {
   )
 }
 
+type TextInputProps = {
+  value: string | number,
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+}
+
+const TextInput: React.FC<TextInputProps> = ({ value, onChange }) => {
+  return(
+    <input
+      type="text"
+      value={value}
+      onChange={onChange}
+    />
+  )
+}
+
 type AddTodoProps = {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
   value: string | number,
@@ -59,8 +74,7 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
 
   return(
     <>
-      <input
-        type="text"
+      <TextInput
         value={value}
         onChange={onChange}
       />
@@ -75,25 +89,40 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
 type UpdateTodoProps = {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
   value: string | number,
-  onUpdate: () => void,
+  todoList: TodoListElement[],
+  editTodoId: number,
+  onUpdate: (newTodoList: TodoListElement[]) => void,
   onCancel: () => void,
 }
 
-const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, onUpdate, onCancel }) => {
+const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, todoList, editTodoId, onUpdate, onCancel }) => {
+  const update = (): void => {
+    let newTodoList = todoList.concat()
+    newTodoList.map((todoElement) => {
+      if (todoElement.id === editTodoId) {
+        todoElement.content = value
+      }
+    })
+    onUpdate(newTodoList)
+  }
+
+  const cancel = (): void => {
+    onCancel()
+  }
+  
   return(
     <>
-      <input
-        type="text"
+      <TextInput
         value={value}
         onChange={onChange}
       />
       <Button
         buttonText="更新"
-        onClick={onUpdate}
+        onClick={update}
       />
       <Button
         buttonText="キャンセル"
-        onClick={onCancel}
+        onClick={cancel}
       />
     </>
   )
@@ -142,14 +171,8 @@ const TodoApp: React.FC = () => {
     setEditTodoId(todoElement.id);
   }
 
-  const handleUpdate = (): void => {
-    let newTodolist: TodoListElement[] = todoList.concat()
-    newTodolist.map((todoElement) => {
-      if (todoElement.id === editTodoId) {
-        todoElement.content = value
-      }
-    })
-    setTodoList(newTodolist);
+  const handleUpdate = (newTodoList: TodoListElement[]): void => {
+    setTodoList(newTodoList);
     setValue("");
     setIsEditMode(false);
     setEditTodoId(0);
@@ -168,7 +191,9 @@ const TodoApp: React.FC = () => {
         ? <UpdateTodo 
             onChange={handleChange}
             value={value}
-            onUpdate={handleUpdate}
+            todoList={todoList}
+            editTodoId={editTodoId}
+            onUpdate={newTodoList => handleUpdate(newTodoList)}
             onCancel={handleCancel}
           />
         : <>
