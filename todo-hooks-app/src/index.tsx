@@ -107,7 +107,7 @@ const TodoApp: React.FC = () => {
             <input
               type="text"
               value={value}
-              onChange={e => onChange(e)}
+              onChange={onChange}
             />
             <button onClick={add}>追加</button>
             <ul>
