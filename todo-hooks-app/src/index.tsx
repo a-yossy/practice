@@ -32,7 +32,6 @@ type TodoListElement = {
 
 const TodoApp: React.FC = () => {
   const [todoList, setTodoList] = useState<TodoListElement[]>([]);
-
   const [value, setValue] = useState<string | number>("");
   const [id, setId] = useState<number>(0);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -76,19 +75,25 @@ const TodoApp: React.FC = () => {
   return (
     <div>
       <h1>TODO App</h1>
-        <input
-          type="text"
-          value={value}
-          onChange={e => onChange(e)}
-        />
-      <button onClick={add}>追加</button>
-      <ul>
-        <TodoListNode
-          todoList={todoList}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-        />
-      </ul>
+      {isEditMode 
+        ? <>
+          </>
+        : <>
+            <input
+              type="text"
+              value={value}
+              onChange={e => onChange(e)}
+            />
+            <button onClick={add}>追加</button>
+            <ul>
+              <TodoListNode
+                todoList={todoList}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+              />
+            </ul>
+          </>
+      }
     </div>
   );
 }
