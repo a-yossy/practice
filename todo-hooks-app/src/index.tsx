@@ -193,7 +193,7 @@ const TodoApp: React.FC = () => {
               onChange={setValue}
               value={value}
               id={id}
-              onAdd={todoElement => handleAdd(todoElement)}
+              onAdd={handleAdd}
             />
             <ul>
               <TodoListNode
