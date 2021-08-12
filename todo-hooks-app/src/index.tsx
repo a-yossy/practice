@@ -69,7 +69,26 @@ const TodoApp: React.FC = () => {
   const handleEdit = (todoElement: TodoListElement): void => {
     setIsEditMode(true);
     setValue(todoElement.content);
-    setId(todoElement.id);
+    setEditTodoId(todoElement.id);
+  }
+
+  const handleUpdate = (): void => {
+    let newTodolist: TodoListElement[] = todoList.concat()
+    newTodolist.map((todoElement) => {
+      if (todoElement.id === editTodoId) {
+        todoElement.content = value
+      }
+    })
+    setTodoList(newTodolist);
+    setValue("");
+    setIsEditMode(false);
+    setEditTodoId(0);
+  }
+
+  const handleCancel = (): void => {
+    setValue("");
+    setIsEditMode(false);
+    setEditTodoId(0);
   }
   
   return (
@@ -77,6 +96,13 @@ const TodoApp: React.FC = () => {
       <h1>TODO App</h1>
       {isEditMode 
         ? <>
+            <input
+              type="text"
+              value={value}
+              onChange={e => onChange(e)}
+            />
+            <button onClick={handleUpdate}>更新</button>
+            <button onClick={handleCancel}>キャンセル</button>
           </>
         : <>
             <input
