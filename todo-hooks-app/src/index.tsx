@@ -1,3 +1,4 @@
+import { on } from "events";
 import * as React from "react";
 import ReactDOM from "react-dom";
 const { useState } = React;
@@ -5,9 +6,10 @@ const { useState } = React;
 type TodoListNodeProps = {
   todoList: TodoListElement[],
   onDelete: (id: number) => void,
+  onEdit: (todoElement: TodoListElement) => void,
 }
 
-const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete }) => {
+const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit }) => {
   return (
     <>
       {todoList.map((todoElement :TodoListElement) => {
@@ -15,7 +17,7 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete }) => {
           <li key={todoElement.id}>
             {todoElement.content}
             <button onClick={() => onDelete(todoElement.id)}>削除</button>
-            <button>編集</button>
+            <button onClick={() => onEdit(todoElement)}>編集</button>
           </li>
         );
       })}
@@ -64,6 +66,12 @@ const TodoApp: React.FC = () => {
     newTodoList.splice(index, 1)
     setTodoList(newTodoList)
   }
+
+  const handleEdit = (todoElement: TodoListElement): void => {
+    setIsEditMode(true);
+    setValue(todoElement.content);
+    setId(todoElement.id);
+  }
   
   return (
     <div>
@@ -78,6 +86,7 @@ const TodoApp: React.FC = () => {
         <TodoListNode
           todoList={todoList}
           onDelete={handleDelete}
+          onEdit={handleEdit}
         />
       </ul>
     </div>
