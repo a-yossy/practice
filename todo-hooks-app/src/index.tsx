@@ -15,6 +15,7 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete }) => {
           <li key={todoElement.id}>
             {todoElement.content}
             <button onClick={() => onDelete(todoElement.id)}>削除</button>
+            <button>編集</button>
           </li>
         );
       })}
