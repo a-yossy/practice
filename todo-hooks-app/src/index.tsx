@@ -15,13 +15,30 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit 
         return(
           <li key={todoElement.id}>
             {todoElement.content}
-            <button onClick={() => onDelete(todoElement.id)}>削除</button>
-            <button onClick={() => onEdit(todoElement)}>編集</button>
+            <Button
+              buttonText="削除"
+              onClick={() => onDelete(todoElement.id)}
+            />
+            <Button
+              buttonText="編集"
+              onClick={() => onEdit(todoElement)}
+            />
           </li>
         );
       })}
     </>
   );
+}
+
+type ButtonProps = {
+  buttonText: string,
+  onClick: () => void,
+}
+
+const Button: React.FC<ButtonProps> = ({ buttonText, onClick }) => {
+  return(
+    <button onClick={onClick}>{buttonText}</button>
+  )
 }
 
 type AddTodoProps = {
@@ -38,7 +55,10 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, onAdd }) => {
         value={value}
         onChange={onChange}
       />
-      <button onClick={onAdd}>追加</button>
+      <Button
+        buttonText="追加"
+        onClick={onAdd}
+      />
     </>
   )
 }
@@ -58,8 +78,14 @@ const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, onUpdate, onCa
         value={value}
         onChange={onChange}
       />
-      <button onClick={onUpdate}>更新</button>
-      <button onClick={onCancel}>キャンセル</button>
+      <Button
+        buttonText="更新"
+        onClick={onUpdate}
+      />
+      <Button
+        buttonText="キャンセル"
+        onClick={onCancel}
+      />
     </>
   )
 }
