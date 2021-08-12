@@ -185,7 +185,7 @@ const TodoApp: React.FC = () => {
             value={value}
             todoList={todoList}
             editTodoId={editTodoId}
-            onUpdate={newTodoList => handleUpdate(newTodoList)}
+            onUpdate={handleUpdate}
             onCancel={handleCancel}
           />
         : <>
