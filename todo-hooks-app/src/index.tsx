@@ -1,4 +1,3 @@
-import { on } from "events";
 import * as React from "react";
 import ReactDOM from "react-dom";
 const { useState } = React;
@@ -99,7 +98,7 @@ const TodoApp: React.FC = () => {
             <input
               type="text"
               value={value}
-              onChange={e => onChange(e)}
+              onChange={onChange}
             />
             <button onClick={handleUpdate}>更新</button>
             <button onClick={handleCancel}>キャンセル</button>
