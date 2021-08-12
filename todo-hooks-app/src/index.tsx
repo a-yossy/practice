@@ -43,6 +43,27 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, onAdd }) => {
   )
 }
 
+type UpdateTodoProps = {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  value: string | number,
+  onUpdate: () => void,
+  onCancel: () => void,
+}
+
+const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, onUpdate, onCancel }) => {
+  return(
+    <>
+      <input
+        type="text"
+        value={value}
+        onChange={onChange}
+      />
+      <button onClick={onUpdate}>更新</button>
+      <button onClick={onCancel}>キャンセル</button>
+    </>
+  )
+}
+
 type TodoListElement = {
   content: string | number,
   id: number,
@@ -55,7 +76,7 @@ const TodoApp: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editTodoId, setEditTodoId] = useState<number>(0);
   
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setValue(e.target.value)
   }
 
@@ -113,18 +134,15 @@ const TodoApp: React.FC = () => {
     <div>
       <h1>TODO App</h1>
       {isEditMode 
-        ? <>
-            <input
-              type="text"
-              value={value}
-              onChange={onChange}
-            />
-            <button onClick={handleUpdate}>更新</button>
-            <button onClick={handleCancel}>キャンセル</button>
-          </>
+        ? <UpdateTodo 
+            onChange={handleChange}
+            value={value}
+            onUpdate={handleUpdate}
+            onCancel={handleCancel}
+          />
         : <>
             <AddTodo
-              onChange={onChange}
+              onChange={handleChange}
               value={value}
               onAdd={handleAdd}
             />
