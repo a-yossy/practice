@@ -50,7 +50,7 @@ const TodoApp: React.FC = () => {
     setValue("");
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number): void => {
     let newTodoList: TodoListElement[] = todoList.concat()
     let index: number = 0
     newTodoList.map((element, idx) => {
