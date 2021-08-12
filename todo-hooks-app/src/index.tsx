@@ -4,14 +4,18 @@ const { useState } = React;
 
 type TodoListNodeProps = {
   todoList: TodoListElement[],
+  onDelete: (id: number) => void,
 }
 
-const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList }) => {
+const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete }) => {
   return (
     <>
       {todoList.map((todoElement :TodoListElement) => {
         return(
-          <li key={todoElement.id}>{todoElement.content}</li>
+          <li key={todoElement.id}>
+            {todoElement.content}
+            <button onClick={() => onDelete(todoElement.id)}>削除</button>
+          </li>
         );
       })}
     </>
@@ -45,6 +49,18 @@ const TodoApp: React.FC = () => {
     setId(id + 1);
     setValue("");
   };
+
+  const handleDelete = (id: number): void => {
+    let newTodoList: TodoListElement[] = todoList.concat()
+    let index: number = 0
+    newTodoList.map((element, idx) => {
+      if (element.id === id) {
+        index = idx
+      }
+    })
+    newTodoList.splice(index, 1)
+    setTodoList(newTodoList)
+  }
   
   return (
     <div>
@@ -58,6 +74,7 @@ const TodoApp: React.FC = () => {
       <ul>
         <TodoListNode
           todoList={todoList}
+          onDelete={handleDelete}
         />
       </ul>
     </div>
