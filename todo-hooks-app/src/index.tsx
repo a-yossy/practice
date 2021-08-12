@@ -33,6 +33,8 @@ const TodoApp: React.FC = () => {
 
   const [value, setValue] = useState<string | number>("");
   const [id, setId] = useState<number>(0);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [editTodoId, setEditTodoId] = useState<number>(0);
   
   const onChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setValue(e.target.value)
