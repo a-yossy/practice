@@ -10,7 +10,7 @@ type TodoListNodeProps = {
 }
 
 const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit }) => {
-  const deleteList = (id: number): void => {
+  const deleteTodo = (id: number): void => {
     let newTodoList: TodoListElement[] = todoList.concat()
     let index: number = 0
     newTodoList.map((todoElement, idx) => {
@@ -30,7 +30,7 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit 
             {todoElement.content}
             <Button
               buttonText="削除"
-              onClick={() => deleteList(todoElement.id)}
+              onClick={() => deleteTodo(todoElement.id)}
             />
             <Button
               buttonText="編集"
