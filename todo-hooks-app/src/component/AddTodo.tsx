@@ -12,7 +12,7 @@ type AddTodoProps = {
 }
 
 const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
-  const addElement = (): void => {
+  const addTodo = (): void => {
     const todoElement: TodoListElement = {
       content: value,
       id: id + 1,
@@ -28,7 +28,7 @@ const AddTodo: React.FC<AddTodoProps> = ({ onChange, value, id, onAdd }) => {
       />
       <Button
         buttonText="追加"
-        onClick={addElement}
+        onClick={addTodo}
       />
     </>
   )
