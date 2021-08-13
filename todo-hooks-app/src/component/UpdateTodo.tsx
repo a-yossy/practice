@@ -14,7 +14,7 @@ type UpdateTodoProps = {
 }
 
 const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, todoList, editTodoId, onUpdate, onCancel }) => {
-  const update = (): void => {
+  const updateList = (): void => {
     let newTodoList: TodoListElement[] = todoList.concat()
     newTodoList.map((todoElement) => {
       if (todoElement.id === editTodoId) {
@@ -32,7 +32,7 @@ const UpdateTodo: React.FC<UpdateTodoProps> = ({ onChange, value, todoList, edit
       />
       <Button
         buttonText="更新"
-        onClick={update}
+        onClick={updateList}
       />
       <Button
         buttonText="キャンセル"
