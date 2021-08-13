@@ -22,10 +22,6 @@ const TodoApp: React.FC = () => {
     setValue("");
   };
 
-  const handleDelete = (newTodoList: TodoListElement[]): void => {
-    setTodoList(newTodoList)
-  }
-
   const handleEdit = (todoElement: TodoListElement): void => {
     setIsEditMode(true);
     setValue(todoElement.content);
@@ -67,7 +63,7 @@ const TodoApp: React.FC = () => {
             <ul>
               <TodoListNode
                 todoList={todoList}
-                onDelete={handleDelete}
+                onDelete={setTodoList}
                 onEdit={handleEdit}
               />
             </ul>
