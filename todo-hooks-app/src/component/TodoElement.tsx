@@ -5,11 +5,23 @@ import * as React from "react";
 
 type TodoListNodeProps = {
   todoList: TodoListElement[],
-  onDelete: (id: number) => void,
+  onDelete: (newTodoList: TodoListElement[]) => void,
   onEdit: (todoElement: TodoListElement) => void,
 }
 
 const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit }) => {
+  const deleteList = (id: number): void => {
+    let newTodoList: TodoListElement[] = todoList.concat()
+    let index: number = 0
+    newTodoList.map((todoElement, idx) => {
+      if (todoElement.id === id) {
+        index = idx
+      }
+    })
+    newTodoList.splice(index, 1)
+    onDelete(newTodoList)
+  }
+
   return (
     <>
       {todoList.map((todoElement: TodoListElement) => {
@@ -18,7 +30,7 @@ const TodoListNode: React.FC<TodoListNodeProps> = ({ todoList, onDelete, onEdit 
             {todoElement.content}
             <Button
               buttonText="削除"
-              onClick={() => onDelete(todoElement.id)}
+              onClick={() => deleteList(todoElement.id)}
             />
             <Button
               buttonText="編集"
