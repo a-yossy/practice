@@ -1,6 +1,6 @@
-import { TodoListElement } from "../domain/entity";
-import Button from "./Button";
-import TextInput from "./TextInput";
+import { TodoListElement } from "domain/entity";
+import Button from "component/Button";
+import TextInput from "component/TextInput";
 
 import * as React from "react";
 

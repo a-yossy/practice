@@ -1,7 +1,7 @@
-import { TodoListElement } from "../domain/entity";
-import TodoListNode from "./TodoElement";
-import AddTodo from "./AddTodo";
-import UpdateTodo from "./UpdateTodo";
+import { TodoListElement } from "domain/entity";
+import TodoListNode from "component/TodoElement"
+import AddTodo from "component/AddTodo";
+import UpdateTodo from "component/UpdateTodo";
 
 import * as React from "react";
 const { useState } = React;

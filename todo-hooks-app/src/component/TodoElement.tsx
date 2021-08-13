@@ -1,5 +1,5 @@
-import { TodoListElement } from "../domain/entity";
-import Button from "./Button";
+import { TodoListElement } from "domain/entity";
+import Button from "component/Button";
 
 import * as React from "react";
 
