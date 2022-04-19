@@ -1,0 +1,21 @@
+= form_with model: @form, url: products_path, method: :post, local: true do |form|
+  %table
+    %thread
+      %tr
+        %th 登録
+        %th 商品名
+        %th 販売価格（円）
+        %th 発注単位
+  %tbody
+    = form.fields_for :products do |f|
+      %tr
+        %td.text-center
+          = f.check_box :availability
+        %td
+          = f.text_field :name
+        %td
+          = f.text_field :price
+        %td
+          = f.text_field :unit
+  = form.submit "一括登録"
+  = link_to "戻る", :back

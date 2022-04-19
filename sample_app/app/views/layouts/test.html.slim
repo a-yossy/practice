@@ -1,0 +1,19 @@
+.container
+  .row
+    .col-md-12.mt-5
+      .card
+        .card-header
+          span.mb-2
+            | jQueryフォーム追加削除
+        .card-body
+          #demo-area.form-group
+            .unit.input-group.mb-2
+              .input-group-prepend
+                span.input-group-text
+                  | TEST
+              input[name="test[]" type="text"]
+              .demo-minus.input-group-append
+                span.btn.btn-danger
+                  | -
+          #demo-plus.btn.btn-primary
+            | +
