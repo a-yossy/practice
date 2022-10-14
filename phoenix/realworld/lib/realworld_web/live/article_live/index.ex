@@ -56,9 +56,20 @@ defmodule RealworldWeb.ArticleLive.Index do
     }
   end
 
+  on_mount [RealworldWeb.CurrentUserAssign, :user]
+
   defp apply_action(socket, :new, _params) do
     socket
     |> assign(:page_title, "New Article")
     |> assign(:article, %Article{ author_id: socket.assigns.current_user.id })
+  end
+
+  def mount(_params, _session, socket) do
+    {:ok, socket |> assign(:articles, list_articles()) |> assign(:tags, Blogs.list_tags())}
+  end
+
+  def handle_event("search_by_tag", %{"tag" => tag}, socket) do
+    articles = Blogs.list_articles_by_tag(tag)
+    {:noreply, assign(socket, :articles, articles)}
   end
 end

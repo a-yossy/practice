@@ -13,6 +13,21 @@ defmodule RealworldWeb.ArticleLiveTest do
     %{article: article}
   end
 
+  defp create_tag(_) do
+    tag = tag_fixture(%{tag: "test"})
+    %{tag: tag}
+  end
+
+  defp create_article_with_tag(_) do
+    {:ok, %{article: article}} = Blogs.insert_article_with_tags(%{
+      title: "some title",
+      body: "some body",
+      author_id: user_fixture().id,
+      tags_string: "test"
+    })
+    %{article_with_tag: article}
+  end
+
   describe "Index" do
     setup [:create_article]
 
@@ -105,6 +120,27 @@ defmodule RealworldWeb.ArticleLiveTest do
 
       assert html =~ "Article updated successfully"
       assert html =~ "some updated body"
+    end
+  end
+
+  describe "Search" do
+    setup [:create_article, :create_tag, :create_article_with_tag]
+
+    test "searches articles by tag", %{
+      conn: conn,
+      article: article,
+      article_with_tag: article_with_tag
+    } do
+      path = Routes.article_index_path(conn, :index)
+      {:ok, view, _html} = live(conn, path)
+
+      html =
+        view
+        |> element("a[phx-value-tag='test']")
+        |> render_click()
+
+      refute html =~ "/articles/#{article.id}"
+      assert html =~ "/articles/#{article_with_tag.id}"
     end
   end
 end
