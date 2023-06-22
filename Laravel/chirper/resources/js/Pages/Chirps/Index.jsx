@@ -1,10 +1,11 @@
 import React from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import Chirp from "@/Components/Chirp.jsx";
 import InputError from "@/Components/inputError";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Head, useForm } from "@inertiajs/react";
 
-const Index = ({auth}) => {
+const Index = ({auth, chirps}) => {
     const { data, setData, post, processing, errors, reset } = useForm({
         message: '',
     });
@@ -31,6 +32,12 @@ const Index = ({auth}) => {
                     <InputError message={errors.message} className="mt-2" />
                     <PrimaryButton className="mt-4" disabled={processing}>Chirp</PrimaryButton>
                 </form>
+
+                <div className="mt-6 bg-white shadow-sm rounded-lg divide-y">
+                    {chirps.map(chirp =>
+                        <Chirp key={chirp.id} chirp={chirp} />
+                    )}
+                </div>
             </div>
         </AuthenticatedLayout>
     );
