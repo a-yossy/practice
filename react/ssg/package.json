@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "npm run --workspaces dev",
+    "build": "npm run --workspaces build",
+    "clean": "npm run --workspaces clean",
+    "format": "prettier --write ./{packages,fixtures}/**/*.js"
+  },
+  "workspaces": [
+    "packages/*",
+    "fixtures/*"
+  ],
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  },
+  "volta": {
+    "node": "16.20.1"
+  }
+}
