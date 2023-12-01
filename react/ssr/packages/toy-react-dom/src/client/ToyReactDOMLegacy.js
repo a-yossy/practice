@@ -56,7 +56,7 @@ export function hydrate(element, container) {
             continue;
           }
           if (isStyle(prop)) {
-            const styles = object.entries(child.props[prop]);
+            const styles = Object.entries(child.props[prop]);
             styles.forEach(([key, value]) => {
               prevChild[prop][key] = value;
             });
@@ -80,7 +80,7 @@ export function hydrate(element, container) {
             continue;
           }
           if (isStyle(prop)) {
-            const styles = object.entries(nextChild.props[prop]);
+            const styles = Object.entries(nextChild.props[prop]);
             styles.forEach(([key, value]) => {
               prevChild[prop][key] = value;
             });
@@ -124,7 +124,6 @@ export function hydrate(element, container) {
         dom.addEventListener(eventType, element.props[key]);
       }
     });
-
     return dom;
   }
 }

@@ -17,8 +17,8 @@ app.get('*', (req, res) => {
     path.resolve(__dirname, 'public/app.html'),
     'utf-8'
   );
-  const html= template.replace('<!-- app -->', content);
-  res.status(200).set('Content-Type', 'text/html').end(html);
+  const html = template.replace('<!-- app -->', content);
+  res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
 });
 
 app.listen(3001, () => {
