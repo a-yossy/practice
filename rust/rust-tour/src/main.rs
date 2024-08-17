@@ -1,41 +1,42 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+struct Pie {
+    slices: u8,
+}
+
+impl Pie {
+    fn eat_slice(&mut self, name: &str) {
+        println!("{} took a slice!", name);
+        self.slices -= 1;
+    }
+}
+
 struct SeaCreature {
-    pub name: String,
-    noise: String,
+    name: String,
+    pie: Rc<RefCell<Pie>>,
 }
 
 impl SeaCreature {
-    pub fn get_sound(&self) -> &str {
-        &self.noise
+    fn eat(&self) {
+        let mut p = self.pie.borrow_mut();
+        p.eat_slice(&self.name);
     }
-}
-
-trait NoiseMaker {
-    fn make_noise(&self);
-}
-
-impl NoiseMaker for SeaCreature {
-    fn make_noise(&self) {
-        println!("{}", &self.get_sound());
-    }
-}
-
-struct Ocean {
-    animals: Vec<Box<dyn NoiseMaker>>,
 }
 
 fn main() {
+    let pie = Rc::new(RefCell::new(Pie { slices: 8 }));
     let ferris = SeaCreature {
-        name: String::from("Ferris"),
-        noise: String::from("blub"),
+        name: String::from("ferris"),
+        pie: pie.clone(),
     };
     let sarah = SeaCreature {
-        name: String::from("Sarah"),
-        noise: String::from("swish"),
+        name: String::from("sarah"),
+        pie: pie.clone(),
     };
-    let ocean = Ocean {
-        animals: vec![Box::new(ferris), Box::new(sarah)],
-    };
-    for a in ocean.animals.iter() {
-        a.make_noise();
-    }
+    ferris.eat();
+    sarah.eat();
+
+    let p = pie.borrow();
+    println!("{} slices left", p.slices);
 }
