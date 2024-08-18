@@ -7,6 +7,10 @@ mod array;
 mod string;
 mod tuple;
 mod function;
+mod match_practice;
+mod sentence;
+mod ownership;
+mod copy;
 
 fn main() {
     println!("Hello, world!");
