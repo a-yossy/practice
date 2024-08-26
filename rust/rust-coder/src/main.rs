@@ -1,5 +1,5 @@
-mod chapter22;
+mod chapter24;
 
 fn main() {
-    chapter22::main();
+    chapter24::main();
 }
