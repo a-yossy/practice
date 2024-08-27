@@ -2,23 +2,16 @@ use proconio::input;
 
 fn main() {
     input! {
-        x_1: i32,
-        x_2: i32,
-        x_3: i32,
-        x_4: i32,
-        x_5: i32,
+        n_d: (usize, usize),
+        x_y: [(i64, i64); n_d.0],
     }
 
-    let ans = if x_1 == 0 {
-        1
-    } else if x_2 == 0 {
-        2
-    } else if x_3 == 0 {
-        3
-    } else if x_4 == 0 {
-        4
-    } else {
-        5
-    };
+    let mut ans = 0;
+    for (x, y) in &x_y {
+        if ((x * x + y * y) as f64).sqrt() <= n_d.1 as f64 {
+            ans += 1;
+        }
+    }
+
     println!("{}", ans);
 }
