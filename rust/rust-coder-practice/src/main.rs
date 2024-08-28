@@ -2,14 +2,18 @@ use proconio::input;
 
 fn main() {
     input! {
-        n_d: (usize, usize),
-        x_y: [(i64, i64); n_d.0],
+        mut l: [i32]
     }
 
+    l.sort();
     let mut ans = 0;
-    for (x, y) in &x_y {
-        if ((x * x + y * y) as f64).sqrt() <= n_d.1 as f64 {
-            ans += 1;
+    for k in 0..l.len() {
+        for j in 0..k {
+            for i in 0..j {
+                if l[i] != l[j] && l[j] != l[k] && l[k] != l[i] && l[i] + l[j] > l[k] {
+                    ans += 1;
+                }
+            }
         }
     }
 
