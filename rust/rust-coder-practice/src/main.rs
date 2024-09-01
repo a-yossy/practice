@@ -2,20 +2,17 @@ use proconio::input;
 
 fn main() {
     input! {
-        mut l: [i32]
+        n: String
     }
 
-    l.sort();
-    let mut ans = 0;
-    for k in 0..l.len() {
-        for j in 0..k {
-            for i in 0..j {
-                if l[i] != l[j] && l[j] != l[k] && l[k] != l[i] && l[i] + l[j] > l[k] {
-                    ans += 1;
-                }
-            }
-        }
+    let mut sum = 0;
+    for c in n.chars() {
+        sum += (c.to_string()).parse::<i32>().unwrap();
     }
 
-    println!("{}", ans);
+    if sum % 9 == 0 {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
 }
