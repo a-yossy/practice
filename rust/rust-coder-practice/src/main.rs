@@ -2,32 +2,19 @@ use proconio::input;
 
 fn main() {
     input! {
-        s: proconio::marker::Chars
+        n: i32,
+        y:i32
     }
 
-    let mut flag = true;
-    let mut count = 1;
-    for c in s {
-        if count % 2 == 0 {
-            match c {
-                'a'..='z' => flag = false,
-                'A'..='Z' => {},
-                _ => panic!()
-            }
-        } else {
-            match c {
-                'a'..='z' => {},
-                'A'..='Z' => flag = false,
-                _ => panic!()
+    for i in 0..=n {
+        for j in 0..=n-i {
+            let k = n - i - j;
+            if i * 10000 + j * 5000 + k * 1000 == y {
+                println!("{} {} {}", i, j, k);
+                return;
             }
         }
-
-        count += 1;
     }
 
-    if flag {
-        println!("Yes");
-    } else {
-        println!("No");
-    }
+    println!("{} {} {}", -1, -1, -1);
 }
