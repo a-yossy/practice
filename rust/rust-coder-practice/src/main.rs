@@ -1,20 +1,8 @@
-use proconio::input;
-
 fn main() {
-    input! {
-        n: i32,
-        y:i32
+    let objective: Option<i32> = Some(1);
+    match objective {
+        Some(x) if x % 2 == 0 => println!("偶数 {}", x),
+        Some(x) => println!("奇数 {}", x),
+        None => println!("値なし")
     }
-
-    for i in 0..=n {
-        for j in 0..=n-i {
-            let k = n - i - j;
-            if i * 10000 + j * 5000 + k * 1000 == y {
-                println!("{} {} {}", i, j, k);
-                return;
-            }
-        }
-    }
-
-    println!("{} {} {}", -1, -1, -1);
 }
