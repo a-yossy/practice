@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 futures = "0.3.30"
+tokio = { version = "0.2.21", features = ["macros"] }
+async-std = { version = "1.6.1", features = ["attributes"] }
+async-trait = "0.1.82"

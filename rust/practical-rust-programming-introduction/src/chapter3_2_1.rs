@@ -272,4 +272,33 @@ pub fn main() {
     print_result(add2);
     async_add(add1, add2).await
   }
+
+  fn move_to_async_block() -> impl Future<Output = ()> {
+    let outside_variable = "this is outside".to_string();
+    async move {
+      println!("{}", outside_variable);
+    }
+  }
+
+  async fn some_great_function(arg: &i32) -> i32 {
+    *arg
+  }
+  fn some_great_function2<'a>(arg: &'a i32) -> impl Future<Output = i32> + 'a {
+    async move {
+      *arg
+    }
+  }
+
+  fn some_great_function3() -> impl Future<Output = i32> {
+    async {
+      let value: i32 = 5;
+      send_to_another_thread_with_borrowing(&value).await
+    }
+  }
+
+  async fn send_to_another_thread_with_borrowing(x: &i32) -> i32 {
+    todo!()
+  }
+
+  
 }
