@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{Error, Seek};
-use std::{fs::OpenOptions, io::SeekFrom, io::ErrorKind, io::Result, path::PathBuf};
+use std::{fs::OpenOptions, io::ErrorKind, io::Result, io::SeekFrom, path::PathBuf};
 
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
@@ -33,30 +33,30 @@ pub fn add_task(journal_path: PathBuf, task: Task) -> Result<()> {
 }
 
 pub fn complete_task(journal_path: PathBuf, task_position: usize) -> Result<()> {
-  let file = OpenOptions::new()
-    .read(true)
-    .write(true)
-    .open(journal_path)?;
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(journal_path)?;
 
-  let mut tasks = collect_tasks(&file)?;
+    let mut tasks = collect_tasks(&file)?;
 
-  if task_position == 0 || task_position > tasks.len() {
-    return Err(Error::new(ErrorKind::InvalidInput, "Invalid Task ID"))
-  }
-  tasks.remove(task_position - 1);
+    if task_position == 0 || task_position > tasks.len() {
+        return Err(Error::new(ErrorKind::InvalidInput, "Invalid Task ID"));
+    }
+    tasks.remove(task_position - 1);
 
-  file.set_len(0)?;
-  serde_json::to_writer(file, &tasks)?;
-  Ok(())
+    file.set_len(0)?;
+    serde_json::to_writer(file, &tasks)?;
+    Ok(())
 }
 
 fn collect_tasks(mut file: &File) -> Result<Vec<Task>> {
-  file.seek(SeekFrom::Start(0))?;
-  let tasks = match serde_json::from_reader(file) {
-    Ok(tasks) => tasks,
-    Err(e) if e.is_eof() => Vec::new(),
-    Err(e) => Err(e)?
-  };
-  file.seek(SeekFrom::Start(0))?;
-  Ok(tasks)
+    file.seek(SeekFrom::Start(0))?;
+    let tasks = match serde_json::from_reader(file) {
+        Ok(tasks) => tasks,
+        Err(e) if e.is_eof() => Vec::new(),
+        Err(e) => Err(e)?,
+    };
+    file.seek(SeekFrom::Start(0))?;
+    Ok(tasks)
 }
