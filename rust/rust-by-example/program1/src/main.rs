@@ -17,7 +17,7 @@ fn main() {
     #[derive(Debug)]
     struct Person<'a> {
         name: &'a str,
-        age: u8
+        age: u8,
     }
 
     let name = "Peter";
@@ -44,7 +44,7 @@ fn main() {
     #[derive(Debug)]
     struct Point2D {
         x: f64,
-        y: f64
+        y: f64,
     }
     impl fmt::Display for Point2D {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -63,14 +63,17 @@ fn main() {
     #[derive(Debug)]
     struct Complex {
         real: f64,
-        imag: f64
+        imag: f64,
     }
     impl fmt::Display for Complex {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "{} + {}i", self.real, self.imag)
         }
     }
-    let complex = Complex { real: 3.3, imag: 7.2 };
+    let complex = Complex {
+        real: 3.3,
+        imag: 7.2,
+    };
     println!("{}", complex);
     println!("{:?}", complex);
 
@@ -80,7 +83,9 @@ fn main() {
             let vec = &self.0;
             write!(f, "[")?;
             for (count, v) in vec.iter().enumerate() {
-                if count != 0 { write!(f, ", ")?; }
+                if count != 0 {
+                    write!(f, ", ")?;
+                }
                 write!(f, "{}: {}", count, v)?;
             }
 
@@ -100,7 +105,15 @@ fn main() {
             let lat_c = if self.lat >= 0.0 { 'N' } else { 'S' };
             let lon_c = if self.lon >= 0.0 { 'E' } else { 'W' };
 
-            write!(f, "{}: {:.3}°{} {:.3}°{}", self.name, self.lat.abs(), lat_c, self.lon.abs(), lon_c)
+            write!(
+                f,
+                "{}: {:.3}°{} {:.3}°{}",
+                self.name,
+                self.lat.abs(),
+                lat_c,
+                self.lon.abs(),
+                lon_c
+            )
         }
     }
 
@@ -108,33 +121,59 @@ fn main() {
     struct Color {
         red: u8,
         green: u8,
-        blue: u8
+        blue: u8,
     }
     impl Display for Color {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             let colors = [self.red, self.green, self.blue];
             write!(f, "RGB (")?;
             for (count, color) in colors.iter().enumerate() {
-                if count != 0 { write!(f, ", ")?; }
+                if count != 0 {
+                    write!(f, ", ")?;
+                }
                 write!(f, "{}", color)?;
             }
             write!(f, ") ")?;
 
-            write!(f, "0x{:X}{:X}{:X}", self.red, self.green, self.blue)
+            write!(f, "0x{:02X}{:02X}{:02X}", self.red, self.green, self.blue)
         }
     }
 
     for city in [
-        City { name: "Dublin", lat: 53.347778, lon: -6.259722 },
-        City { name: "Oslo", lat: 59.95, lon: 10.75 },
-        City { name: "Vancouver", lat: 49.25, lon: -123.1 }
+        City {
+            name: "Dublin",
+            lat: 53.347778,
+            lon: -6.259722,
+        },
+        City {
+            name: "Oslo",
+            lat: 59.95,
+            lon: 10.75,
+        },
+        City {
+            name: "Vancouver",
+            lat: 49.25,
+            lon: -123.1,
+        },
     ] {
         println!("{}", city);
     }
     for color in [
-        Color { red: 128, green: 255, blue: 90 },
-        Color { red: 0, green: 3, blue: 254 },
-        Color { red: 0, green: 0, blue: 0 },
+        Color {
+            red: 128,
+            green: 255,
+            blue: 90,
+        },
+        Color {
+            red: 0,
+            green: 3,
+            blue: 254,
+        },
+        Color {
+            red: 0,
+            green: 0,
+            blue: 0,
+        },
     ] {
         println!("{}", color);
     }
