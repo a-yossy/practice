@@ -34,7 +34,10 @@ class PriorityQueue {
       const parentIdx = (idx - 1) >> 1;
       // 比較はdistanceで行うため、[0]を参照
       if (this.heap[parentIdx][0] <= this.heap[idx][0]) break;
-      [this.heap[parentIdx], this.heap[idx]] = [this.heap[idx], this.heap[parentIdx]];
+      [this.heap[parentIdx], this.heap[idx]] = [
+        this.heap[idx],
+        this.heap[parentIdx],
+      ];
       idx = parentIdx;
     }
   }
@@ -55,7 +58,10 @@ class PriorityQueue {
 
       if (smallest === idx) break;
 
-      [this.heap[idx], this.heap[smallest]] = [this.heap[smallest], this.heap[idx]];
+      [this.heap[idx], this.heap[smallest]] = [
+        this.heap[smallest],
+        this.heap[idx],
+      ];
       idx = smallest;
     }
   }
