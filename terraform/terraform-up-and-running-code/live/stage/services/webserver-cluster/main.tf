@@ -6,7 +6,7 @@ module "webserver_cluster" {
   source = "../../../../modules/services/webserver-cluster"
 
   ami         = "ami-0fb653ca2d3203ac1"
-  server_text = "test"
+  server_text = "foo bar"
 
   cluster_name           = "webservers-stage"
   db_remote_state_bucket = "terraform-up-and-running-state-yossy"
@@ -17,4 +17,3 @@ module "webserver_cluster" {
   max_size           = 2
   enable_autoscaling = false
 }
-
