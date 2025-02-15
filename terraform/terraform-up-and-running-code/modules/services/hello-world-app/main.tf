@@ -7,6 +7,10 @@ terraform {
   }
 }
 
+provider "aws" {
+  region = "us-east-2"
+}
+
 locals {
   http_port    = 80
   any_port     = 0
