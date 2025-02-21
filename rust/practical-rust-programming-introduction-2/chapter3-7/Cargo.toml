@@ -1,0 +1,8 @@
+[package]
+name = "chapter3-7"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-std = { version = "1.6.1", features = ["attributes"] }
+async-trait = "0.1.86"
