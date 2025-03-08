@@ -42,7 +42,7 @@ async fn todos_index(State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
 
 async fn todo_create(
     State(pool): State<Pool<Sqlite>>,
-    Json(input): Json<CreateTodo>,
+    Json(params): Json<CreateTodo>,
 ) -> impl IntoResponse {
     let id = Uuid::new_v4().to_string();
     let todo = sqlx::query_as!(
@@ -58,7 +58,7 @@ async fn todo_create(
                 completed != 0 AS "completed: bool"
         "#,
         id,
-        input.text
+        params.text
     )
     .fetch_one(&pool)
     .await
