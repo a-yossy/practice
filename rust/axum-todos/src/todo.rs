@@ -19,13 +19,13 @@ pub async fn index(State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
     let todos = sqlx::query_as!(
         Todo,
         r#"
-          SELECT
-              id,
-              text,
-              completed
-          FROM
-              todo
-      "#
+SELECT
+    id,
+    text,
+    completed
+FROM
+    todo
+        "#
     )
     .fetch_all(&pool)
     .await
@@ -46,15 +46,15 @@ pub async fn create(
     let todo = sqlx::query_as!(
         Todo,
         r#"
-          INSERT INTO
-              todo (id, text)
-          VALUES
-              ($1, $2)
-          RETURNING
-              id,
-              text,
-              completed
-      "#,
+INSERT INTO
+    todo (id, text)
+VALUES
+    ($1, $2)
+RETURNING
+    id,
+    text,
+    completed
+        "#,
         id,
         params.text
     )
@@ -77,17 +77,17 @@ pub async fn update_text(
     let todo = sqlx::query_as!(
         Todo,
         r#"
-          UPDATE
-              todo
-          SET
-              text = $1
-          WHERE
-              id = $2
-          RETURNING
-              id,
-              text,
-              completed
-      "#,
+UPDATE
+    todo
+SET
+    text = $1
+WHERE
+    id = $2
+RETURNING
+    id,
+    text,
+    completed
+        "#,
         params.text,
         id
     )
@@ -105,17 +105,17 @@ pub async fn complete(
     let todo = sqlx::query_as!(
         Todo,
         r#"
-          UPDATE
-              todo
-          SET
-              completed = true
-          WHERE
-              id = $1
-          RETURNING
-              id,
-              text,
-              completed
-      "#,
+UPDATE
+    todo
+SET
+    completed = true
+WHERE
+    id = $1
+RETURNING
+    id,
+    text,
+    completed
+        "#,
         id
     )
     .fetch_one(&pool)
@@ -128,11 +128,11 @@ pub async fn complete(
 pub async fn delete(Path(id): Path<String>, State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
     sqlx::query!(
         r#"
-          DELETE FROM
-              todo
-          WHERE
-              id = $1
-      "#,
+DELETE FROM
+    todo
+WHERE
+    id = $1
+        "#,
         id
     )
     .execute(&pool)
