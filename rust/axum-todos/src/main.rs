@@ -1,8 +1,9 @@
 use axum::{
+    extract::State,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
-    Extension, Json, Router,
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
@@ -20,7 +21,7 @@ struct CreateTodo {
     text: String,
 }
 
-async fn todos_index(Extension(pool): Extension<Pool<Sqlite>>) -> impl IntoResponse {
+async fn todos_index(State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
     let todos = sqlx::query_as!(
         Todo,
         r#"
@@ -40,7 +41,7 @@ async fn todos_index(Extension(pool): Extension<Pool<Sqlite>>) -> impl IntoRespo
 }
 
 async fn todo_create(
-    Extension(pool): Extension<Pool<Sqlite>>,
+    State(pool): State<Pool<Sqlite>>,
     Json(input): Json<CreateTodo>,
 ) -> impl IntoResponse {
     let id = Uuid::new_v4().to_string();
@@ -76,7 +77,7 @@ async fn main() {
     let app = Router::new()
         .route("/todos", get(todos_index))
         .route("/todos", post(todo_create))
-        .layer(Extension(pool));
+        .with_state(pool);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
