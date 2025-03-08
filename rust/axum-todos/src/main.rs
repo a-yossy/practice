@@ -1,71 +1,10 @@
 use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+    routing::{delete, get, patch},
+    Router,
 };
-use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
-use uuid::Uuid;
+use sqlx::sqlite::SqlitePoolOptions;
 
-#[derive(Debug, Serialize)]
-struct Todo {
-    id: String,
-    text: String,
-    completed: bool,
-}
-
-#[derive(Debug, Deserialize)]
-struct CreateTodo {
-    text: String,
-}
-
-async fn todos_index(State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
-    let todos = sqlx::query_as!(
-        Todo,
-        r#"
-            SELECT
-                id,
-                text,
-                completed != 0 AS "completed: bool"
-            FROM
-                todo
-        "#
-    )
-    .fetch_all(&pool)
-    .await
-    .unwrap();
-
-    Json(todos)
-}
-
-async fn todo_create(
-    State(pool): State<Pool<Sqlite>>,
-    Json(params): Json<CreateTodo>,
-) -> impl IntoResponse {
-    let id = Uuid::new_v4().to_string();
-    let todo = sqlx::query_as!(
-        Todo,
-        r#"
-            INSERT INTO
-                todo (id, text)
-            VALUES
-                ($1, $2)
-            RETURNING
-                id,
-                text,
-                completed != 0 AS "completed: bool"
-        "#,
-        id,
-        params.text
-    )
-    .fetch_one(&pool)
-    .await
-    .unwrap();
-
-    (StatusCode::CREATED, Json(todo))
-}
+mod todo;
 
 #[tokio::main]
 async fn main() {
@@ -75,8 +14,10 @@ async fn main() {
         .await
         .unwrap();
     let app = Router::new()
-        .route("/todos", get(todos_index))
-        .route("/todos", post(todo_create))
+        .route("/todos", get(todo::index).post(todo::create))
+        .route("/todos/{id}", delete(todo::delete))
+        .route("/todos/{id}/text", patch(todo::update_text))
+        .route("/todos/{id}/complete", patch(todo::complete))
         .with_state(pool);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await

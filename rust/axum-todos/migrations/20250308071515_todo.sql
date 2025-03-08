@@ -2,5 +2,5 @@ CREATE TABLE
   todo (
     id TEXT PRIMARY KEY NOT NULL,
     text TEXT NOT NULL,
-    completed TINYINT (1) NOT NULL DEFAULT 0
+    completed BOOLEAN NOT NULL DEFAULT false
   );
