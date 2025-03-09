@@ -9,10 +9,10 @@ use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
-struct Todo {
-    id: String,
-    text: String,
-    completed: bool,
+pub struct Todo {
+    pub id: String,
+    pub text: String,
+    pub completed: bool,
 }
 
 pub async fn index(State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
