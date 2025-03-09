@@ -73,7 +73,7 @@ pub async fn update_text(
     Path(id): Path<String>,
     State(pool): State<Pool<Sqlite>>,
     Json(params): Json<UpdateTodoText>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
     let todo = sqlx::query_as!(
         Todo,
         r#"
@@ -93,15 +93,15 @@ RETURNING
     )
     .fetch_one(&pool)
     .await
-    .unwrap();
+    .map_err(|_| StatusCode::NOT_FOUND)?;
 
-    (StatusCode::OK, Json(todo))
+    Ok(Json(todo))
 }
 
 pub async fn complete(
     Path(id): Path<String>,
     State(pool): State<Pool<Sqlite>>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
     let todo = sqlx::query_as!(
         Todo,
         r#"
@@ -120,13 +120,13 @@ RETURNING
     )
     .fetch_one(&pool)
     .await
-    .unwrap();
+    .map_err(|_| StatusCode::NOT_FOUND)?;
 
-    (StatusCode::OK, Json(todo))
+    Ok(Json(todo))
 }
 
 pub async fn delete(Path(id): Path<String>, State(pool): State<Pool<Sqlite>>) -> impl IntoResponse {
-    sqlx::query!(
+    let result = sqlx::query!(
         r#"
 DELETE FROM
     todo
@@ -136,8 +136,11 @@ WHERE
         id
     )
     .execute(&pool)
-    .await
-    .unwrap();
+    .await;
 
-    (StatusCode::NO_CONTENT, Json(()))
+    if result.is_ok() {
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::NOT_FOUND
+    }
 }
