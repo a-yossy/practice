@@ -1,9 +1,38 @@
+type User {
+  githubLogin: ID!
+  name: String
+  avatar: String
+  postedPhotos: [Photo!]!
+  inPhotos: [Photo!]!
+}
+
+type User {
+  postedPhotos(
+    filter: PhotoFilter
+    paging: DataPage
+    sorting: DataSort
+  ): [Photo!]!
+  inPhotos(filter: PhotoFilter, paging: DataPage, sorting: DataSort): [Photo!]!
+}
+
 enum PhotoCategory {
   SELFIE
   PORTRAIT
   ACTION
   LANDSCAPE
   GRAPHIC
+}
+
+enum SortDirection {
+  ASCENDING
+  DESCENDING
+}
+
+enum SortablePhotoField {
+  name
+  description
+  category
+  created
 }
 
 scalar DateTime
@@ -15,4 +44,72 @@ type Photo {
   description: String
   created: DateTime!
   category: PhotoCategory!
+  postedBy: User!
+  taggedUsers: [User!]!
+  taggedUsers(sorting: DataSort): [User!]!
+}
+
+input PostPhotoInput {
+  name: String!
+  description: String
+  category: PhotoCategory = PORTRAIT
+}
+
+input PhotoFilter {
+  category: PhotoCategory
+  createdBetween: DateRange
+  taggedUsers: [ID!]
+  searchText: String
+}
+
+input DateRange {
+  start: DateTime!
+  end: DateTime!
+}
+
+input DataPage {
+  first: Int = 25
+  start: Int = 0
+}
+
+input DataSort {
+  sort: SortDirection = DESCENDING
+  sortBy: SortablePhotoField = created
+}
+
+type AuthPayload {
+  user: User!
+  token: String!
+}
+
+type Mutation {
+  postPhoto(input: PostPhotoInput): Photo!
+  githubAuth(code: String!): AuthPayload!
+}
+
+type Subscription {
+  newPhoto(category: PhotoCategory): Photo!
+  newUser: User!
+}
+
+type Query {
+  totalPhotos: Int!
+  allPhotos: [Photo!]!
+  totalUsers: Int!
+  allUsers: [User!]!
+  User(githubLogin: ID!): User!
+  Photo(id: ID!): Photo!
+  allPhotos(category: PhotoCategory): [Photo!]!
+  allUsers(first: Int = 50, start: Int = 0): [User!]!
+  allPhotos(first: Int = 25, start: Int = 0): [Photo!]!
+  allPhotos(
+    sort: SortDirection = DESCENDING
+    sortBy: SortablePhotoField = created
+  ): [Photo!]!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
 }

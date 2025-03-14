@@ -1,0 +1,26 @@
+scalar DateTime
+
+interface AgendaItem {
+  name: String!
+  start: DateTime!
+  end: DateTime!
+}
+
+type StudyGroup implements AgendaItem {
+  name: String!
+  start: DateTime!
+  end: DateTime!
+  participants: [User!]!
+  topic: String!
+}
+
+type Workout implements AgendaItem {
+  name: String!
+  start: DateTime!
+  end: DateTime!
+  reps: Int!
+}
+
+type Query {
+  agenda: [AgendaItem!]!
+}

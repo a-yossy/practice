@@ -1,0 +1,9 @@
+type User {
+  friends: [Friendship!]!
+}
+
+type Friendship {
+  friends: [User!]!
+  howLong: Int!
+  whereWeMet: Location
+}
