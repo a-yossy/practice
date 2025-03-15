@@ -1,6 +1,8 @@
 use std::sync::Mutex;
 
-use async_graphql::{http::GraphiQLSource, EmptySubscription, Object, Schema, SimpleObject};
+use async_graphql::{
+    http::GraphiQLSource, ComplexObject, EmptySubscription, Object, Schema, SimpleObject,
+};
 use async_graphql_axum::GraphQL;
 use axum::{
     response::{self, IntoResponse},
@@ -10,10 +12,18 @@ use axum::{
 use tokio::net::TcpListener;
 
 #[derive(SimpleObject, Clone)]
+#[graphql(complex)]
 struct Photo {
     id: String,
     name: String,
     description: Option<String>,
+}
+
+#[ComplexObject]
+impl Photo {
+    async fn url(&self) -> String {
+        format!("https://yoursite.com/img/{}.jpg", self.id)
+    }
 }
 
 static PHOTOS: Mutex<Vec<Photo>> = Mutex::new(Vec::new());
@@ -43,7 +53,9 @@ impl MutationRoot {
         let mut id = ID.lock().unwrap();
         *id += 1;
         let new_photo = Photo {
-            id: id.to_string(), name, description
+            id: id.to_string(),
+            name,
+            description,
         };
         photos.push(new_photo.clone());
 
