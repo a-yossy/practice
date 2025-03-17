@@ -124,46 +124,49 @@ async fn graphiql() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    let mut users = USERS.lock().await;
-    users.push(User {
-        github_login: GraphqlID::from("mHattrup"),
-        name: Some("Mike Hattrup".to_string()),
-        avatar: None,
-    });
-    users.push(User {
-        github_login: GraphqlID::from("gPlake"),
-        name: Some("Glen Plake".to_string()),
-        avatar: None,
-    });
-    users.push(User {
-        github_login: GraphqlID::from("sSchmidt"),
-        name: Some("Scot Schmidt".to_string()),
-        avatar: None,
-    });
+    {
+        let mut users = USERS.lock().await;
+        users.push(User {
+            github_login: GraphqlID::from("mHattrup"),
+            name: Some("Mike Hattrup".to_string()),
+            avatar: None,
+        });
+        users.push(User {
+            github_login: GraphqlID::from("gPlake"),
+            name: Some("Glen Plake".to_string()),
+            avatar: None,
+        });
+        users.push(User {
+            github_login: GraphqlID::from("sSchmidt"),
+            name: Some("Scot Schmidt".to_string()),
+            avatar: None,
+        });
+    }
 
-    let mut photos = PHOTOS.lock().await;
-
-    photos.push(Photo {
-        id: GraphqlID::from(1),
-        name: "Dropping the Heart Chute".to_string(),
-        description: Some("The heart chute is one of my favorite chutes".to_string()),
-        category: PhotoCategory::Action,
-        github_user: GraphqlID::from("gPlake"),
-    });
-    photos.push(Photo {
-        id: GraphqlID::from(2),
-        name: "Enjoying the sunshine".to_string(),
-        description: None,
-        category: PhotoCategory::Selfie,
-        github_user: GraphqlID::from("sSchmidt"),
-    });
-    photos.push(Photo {
-        id: GraphqlID::from(3),
-        name: "Gunbarrel 25".to_string(),
-        description: Some("25 laps on gunbarrel today".to_string()),
-        category: PhotoCategory::Landscape,
-        github_user: GraphqlID::from("sSchmidt"),
-    });
+    {
+        let mut photos = PHOTOS.lock().await;
+        photos.push(Photo {
+            id: GraphqlID::from(1),
+            name: "Dropping the Heart Chute".to_string(),
+            description: Some("The heart chute is one of my favorite chutes".to_string()),
+            category: PhotoCategory::Action,
+            github_user: GraphqlID::from("gPlake"),
+        });
+        photos.push(Photo {
+            id: GraphqlID::from(2),
+            name: "Enjoying the sunshine".to_string(),
+            description: None,
+            category: PhotoCategory::Selfie,
+            github_user: GraphqlID::from("sSchmidt"),
+        });
+        photos.push(Photo {
+            id: GraphqlID::from(3),
+            name: "Gunbarrel 25".to_string(),
+            description: Some("25 laps on gunbarrel today".to_string()),
+            category: PhotoCategory::Landscape,
+            github_user: GraphqlID::from("sSchmidt"),
+        });
+    }
 
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription).finish();
     let app = Router::new().route("/", get(graphiql).post_service(GraphQL::new(schema)));
