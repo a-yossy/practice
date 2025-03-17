@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
 use async_graphql::{
-    http::GraphiQLSource, ComplexObject, EmptySubscription, Enum, InputObject, Object, Schema,
-    SimpleObject, ID as GraphqlID,
+    http::GraphiQLSource, ComplexObject, EmptySubscription, Enum, InputObject, InputValueError,
+    Object, Scalar, ScalarType, Schema, SimpleObject, Value, ID as GraphqlID,
 };
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -10,7 +10,29 @@ use axum::{
     routing::get,
     Router,
 };
+use chrono::{DateTime as ChronoDateTime, TimeZone, Utc};
 use tokio::{net::TcpListener, sync::Mutex};
+
+#[derive(Clone)]
+struct DateTime(ChronoDateTime<Utc>);
+
+#[Scalar]
+impl ScalarType for DateTime {
+    fn parse(value: Value) -> async_graphql::InputValueResult<Self> {
+        if let Value::String(value) = &value {
+            let date_time = value
+                .parse::<ChronoDateTime<Utc>>()
+                .map_err(|e| InputValueError::custom(format!("無効な DateTime: {}", e)))?;
+            Ok(DateTime(date_time))
+        } else {
+            Err(InputValueError::expected_type(value))
+        }
+    }
+
+    fn to_value(&self) -> Value {
+        Value::String(self.0.to_rfc3339())
+    }
+}
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum PhotoCategory {
@@ -30,6 +52,7 @@ struct Photo {
     category: PhotoCategory,
     #[graphql(skip)]
     github_user: GraphqlID,
+    created: DateTime,
 }
 
 #[ComplexObject]
@@ -144,6 +167,7 @@ impl MutationRoot {
             description: input.description,
             category: input.category,
             github_user: GraphqlID::from("mHattrup"),
+            created: DateTime(Utc::now()),
         };
         photos.push(new_photo.clone());
 
@@ -184,6 +208,7 @@ async fn main() {
             description: Some("The heart chute is one of my favorite chutes".to_string()),
             category: PhotoCategory::Action,
             github_user: GraphqlID::from("gPlake"),
+            created: DateTime(Utc.with_ymd_and_hms(1997, 3, 28, 0, 0, 0).unwrap()),
         });
         photos.push(Photo {
             id: GraphqlID::from(2),
@@ -191,6 +216,7 @@ async fn main() {
             description: None,
             category: PhotoCategory::Selfie,
             github_user: GraphqlID::from("sSchmidt"),
+            created: DateTime(Utc.with_ymd_and_hms(1985, 2, 1, 0, 0, 0).unwrap()),
         });
         photos.push(Photo {
             id: GraphqlID::from(3),
@@ -198,6 +224,7 @@ async fn main() {
             description: Some("25 laps on gunbarrel today".to_string()),
             category: PhotoCategory::Landscape,
             github_user: GraphqlID::from("sSchmidt"),
+            created: DateTime(Utc.with_ymd_and_hms(2018, 4, 15, 19, 9, 57).unwrap()),
         });
     }
 
