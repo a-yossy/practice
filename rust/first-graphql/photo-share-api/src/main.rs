@@ -1,7 +1,8 @@
 use std::sync::Mutex;
 
 use async_graphql::{
-    http::GraphiQLSource, ComplexObject, EmptySubscription, Object, Schema, SimpleObject,
+    http::GraphiQLSource, ComplexObject, EmptySubscription, Enum, InputObject, Object, Schema,
+    SimpleObject,
 };
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -11,11 +12,29 @@ use axum::{
 };
 use tokio::net::TcpListener;
 
+#[derive(Enum, Clone, Copy, PartialEq, Eq)]
+enum PhotoCategory {
+    Selfie,
+    Portrait,
+    Action,
+    Landscape,
+    Graphic,
+}
+
 #[derive(SimpleObject, Clone)]
 #[graphql(complex)]
 struct Photo {
     id: String,
     name: String,
+    description: Option<String>,
+    category: PhotoCategory,
+}
+
+#[derive(InputObject)]
+struct PostPhotoInput {
+    name: String,
+    #[graphql(default_with = "PhotoCategory::Portrait")]
+    category: PhotoCategory,
     description: Option<String>,
 }
 
@@ -48,14 +67,15 @@ struct MutationRoot;
 
 #[Object]
 impl MutationRoot {
-    async fn post_photo(&self, name: String, description: Option<String>) -> Photo {
+    async fn post_photo(&self, input: PostPhotoInput) -> Photo {
         let mut photos = PHOTOS.lock().unwrap();
         let mut id = ID.lock().unwrap();
         *id += 1;
         let new_photo = Photo {
             id: id.to_string(),
-            name,
-            description,
+            name: input.name,
+            description: input.description,
+            category: input.category,
         };
         photos.push(new_photo.clone());
 
