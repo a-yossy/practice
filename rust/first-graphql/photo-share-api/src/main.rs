@@ -47,6 +47,22 @@ impl Photo {
             .unwrap()
             .clone()
     }
+
+    async fn tagged_users(&self) -> Vec<User> {
+        let tags = TAGS.lock().await;
+        let users = USERS.lock().await;
+        tags.iter()
+            .filter(|tag| tag.photo_id == self.id)
+            .map(|tag| &tag.user_id)
+            .map(|user_id| {
+                users
+                    .iter()
+                    .find(|user| user.github_login == *user_id)
+                    .unwrap()
+            })
+            .cloned()
+            .collect()
+    }
 }
 
 #[derive(SimpleObject, Clone)]
@@ -68,6 +84,22 @@ impl User {
             .cloned()
             .collect()
     }
+
+    async fn in_photos(&self) -> Vec<Photo> {
+        let tags = TAGS.lock().await;
+        let photos = PHOTOS.lock().await;
+        tags.iter()
+            .filter(|tag| tag.user_id == self.github_login)
+            .map(|tag| &tag.photo_id)
+            .map(|photo_id| photos.iter().find(|photo| photo.id == *photo_id).unwrap())
+            .cloned()
+            .collect()
+    }
+}
+
+struct Tag {
+    photo_id: GraphqlID,
+    user_id: GraphqlID,
 }
 
 #[derive(InputObject)]
@@ -80,6 +112,7 @@ struct PostPhotoInput {
 
 static PHOTOS: LazyLock<Mutex<Vec<Photo>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static USERS: LazyLock<Mutex<Vec<User>>> = LazyLock::new(|| Mutex::new(Vec::new()));
+static TAGS: LazyLock<Mutex<Vec<Tag>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static ID: LazyLock<Mutex<usize>> = LazyLock::new(|| Mutex::new(0));
 
 struct QueryRoot;
@@ -165,6 +198,26 @@ async fn main() {
             description: Some("25 laps on gunbarrel today".to_string()),
             category: PhotoCategory::Landscape,
             github_user: GraphqlID::from("sSchmidt"),
+        });
+    }
+
+    {
+        let mut tags = TAGS.lock().await;
+        tags.push(Tag {
+            photo_id: "1".into(),
+            user_id: "gPlake".into(),
+        });
+        tags.push(Tag {
+            photo_id: "2".into(),
+            user_id: "sSchmidt".into(),
+        });
+        tags.push(Tag {
+            photo_id: "2".into(),
+            user_id: "mHattrup".into(),
+        });
+        tags.push(Tag {
+            photo_id: "2".into(),
+            user_id: "gPlake".into(),
         });
     }
 
