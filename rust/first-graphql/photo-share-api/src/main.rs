@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
 use async_graphql::{
-    http::GraphiQLSource, ComplexObject, EmptySubscription, Enum, InputObject, InputValueError,
-    Object, Scalar, ScalarType, Schema, SimpleObject, Value, ID as GraphqlID,
+    http::GraphiQLSource, ComplexObject, Context, EmptySubscription, Enum, InputObject,
+    InputValueError, Object, Scalar, ScalarType, Schema, SimpleObject, Value, ID as GraphqlID,
 };
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -11,9 +11,12 @@ use axum::{
     Router,
 };
 use chrono::{DateTime as ChronoDateTime, TimeZone, Utc};
+use futures::stream::TryStreamExt;
+use mongodb::{bson::doc, Client, Database};
+use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, sync::Mutex};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct DateTime(ChronoDateTime<Utc>);
 
 #[Scalar]
@@ -34,7 +37,7 @@ impl ScalarType for DateTime {
     }
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum PhotoCategory {
     Selfie,
     Portrait,
@@ -43,7 +46,7 @@ enum PhotoCategory {
     Graphic,
 }
 
-#[derive(SimpleObject, Clone)]
+#[derive(SimpleObject, Clone, Serialize, Deserialize)]
 #[graphql(complex)]
 struct Photo {
     id: GraphqlID,
@@ -88,7 +91,7 @@ impl Photo {
     }
 }
 
-#[derive(SimpleObject, Clone)]
+#[derive(SimpleObject, Clone, Serialize, Deserialize)]
 #[graphql(complex)]
 struct User {
     github_login: GraphqlID,
@@ -142,14 +145,40 @@ struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
-    async fn total_photos(&self) -> usize {
-        let photos = PHOTOS.lock().await;
-        photos.len()
+    async fn total_photos(&self, ctx: &Context<'_>) -> usize {
+        let database = ctx.data::<Database>().unwrap();
+        let photos = database.collection::<Photo>("photos");
+        photos.count_documents(doc! {}).await.unwrap() as usize
     }
 
-    async fn all_photos(&self) -> Vec<Photo> {
-        let photos = PHOTOS.lock().await;
-        photos.to_vec()
+    async fn all_photos(&self, ctx: &Context<'_>) -> Vec<Photo> {
+        let database = ctx.data::<Database>().unwrap();
+        let collection = database.collection::<Photo>("photos");
+        let mut cursor = collection.find(doc! {}).await.unwrap();
+        let mut photos = Vec::new();
+        while let Some(photo) = cursor.try_next().await.unwrap() {
+            photos.push(photo);
+        }
+
+        photos
+    }
+
+    async fn total_users(&self, ctx: &Context<'_>) -> usize {
+        let database = ctx.data::<Database>().unwrap();
+        let users = database.collection::<Vec<User>>("users");
+        users.count_documents(doc! {}).await.unwrap() as usize
+    }
+
+    async fn all_users(&self, ctx: &Context<'_>) -> Vec<User> {
+        let database = ctx.data::<Database>().unwrap();
+        let collection = database.collection::<User>("users");
+        let mut cursor = collection.find(doc! {}).await.unwrap();
+        let mut users = Vec::new();
+        while let Some(user) = cursor.try_next().await.unwrap() {
+            users.push(user);
+        }
+
+        users
     }
 }
 
@@ -181,6 +210,10 @@ async fn graphiql() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
+    let uri = dotenv::var("DB_HOST").unwrap();
+    let client = Client::with_uri_str(uri).await.unwrap();
+    let database = client.database("sample");
+
     {
         let mut users = USERS.lock().await;
         users.push(User {
@@ -248,7 +281,9 @@ async fn main() {
         });
     }
 
-    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription).finish();
+    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(database)
+        .finish();
     let app = Router::new().route("/", get(graphiql).post_service(GraphQL::new(schema)));
     axum::serve(TcpListener::bind("127.0.0.1:8000").await.unwrap(), app)
         .await
