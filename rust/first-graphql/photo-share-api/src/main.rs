@@ -203,17 +203,17 @@ struct GithubCredentialResponse {
 #[derive(Deserialize)]
 struct GithubUserAccountResponse {
     message: Option<String>,
-    avatar_url: String,
+    avatar_url: Option<String>,
     login: String,
-    name: String,
+    name: Option<String>,
 }
 
 struct GithubAuthorizeResponse {
     access_token: String,
     message: Option<String>,
-    avatar_url: String,
+    avatar_url: Option<String>,
     login: String,
-    name: String,
+    name: Option<String>,
 }
 
 #[derive(SimpleObject)]
@@ -248,10 +248,9 @@ async fn request_github_token(credential: GithubCredential) -> GithubCredentialR
 async fn request_github_user_account(token: &String) -> GithubUserAccountResponse {
     let client = ReqwestClient::new();
     client
-        .get(format!(
-            "https://api.github.com/user?access_token={}",
-            token
-        ))
+        .get("https://api.github.com/user")
+        .header("Authorization", format!("token {}", token))
+        .header("User-Agent", "rust-first-graphql")
         .send()
         .await
         .unwrap()
@@ -320,10 +319,10 @@ impl MutationRoot {
         }
 
         let latest_user_info = DbUser {
-            name: Some(name),
+            name,
             github_login: login,
             github_token: access_token,
-            avatar: Some(avatar_url),
+            avatar: avatar_url,
         };
 
         let database = ctx.data::<Database>().unwrap();
