@@ -1,8 +1,9 @@
 use std::sync::LazyLock;
 
 use async_graphql::{
-    http::GraphiQLSource, ComplexObject, Context, EmptySubscription, Enum, InputObject,
-    InputValueError, Object, Scalar, ScalarType, Schema, SimpleObject, Value, ID as GraphqlID,
+    http::GraphiQLSource, ComplexObject, Context, EmptySubscription, Enum, Error, InputObject,
+    InputValueError, Object, Result, Scalar, ScalarType, Schema, SimpleObject, Value,
+    ID as GraphqlID,
 };
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -13,6 +14,7 @@ use axum::{
 use chrono::{DateTime as ChronoDateTime, TimeZone, Utc};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Client, Database};
+use reqwest::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, sync::Mutex};
 
@@ -165,20 +167,114 @@ impl QueryRoot {
 
     async fn total_users(&self, ctx: &Context<'_>) -> usize {
         let database = ctx.data::<Database>().unwrap();
-        let users = database.collection::<Vec<User>>("users");
+        let users = database.collection::<Vec<DbUser>>("users");
         users.count_documents(doc! {}).await.unwrap() as usize
     }
 
     async fn all_users(&self, ctx: &Context<'_>) -> Vec<User> {
         let database = ctx.data::<Database>().unwrap();
-        let collection = database.collection::<User>("users");
+        let collection = database.collection::<DbUser>("users");
         let mut cursor = collection.find(doc! {}).await.unwrap();
         let mut users = Vec::new();
         while let Some(user) = cursor.try_next().await.unwrap() {
-            users.push(user);
+            users.push(User {
+                name: user.name,
+                github_login: user.github_login.into(),
+                avatar: user.avatar,
+            });
         }
 
         users
+    }
+}
+
+#[derive(Serialize)]
+struct GithubCredential {
+    client_id: String,
+    client_secret: String,
+    code: String,
+}
+
+#[derive(Deserialize)]
+struct GithubCredentialResponse {
+    access_token: String,
+}
+
+#[derive(Deserialize)]
+struct GithubUserAccountResponse {
+    message: Option<String>,
+    avatar_url: String,
+    login: String,
+    name: String,
+}
+
+struct GithubAuthorizeResponse {
+    access_token: String,
+    message: Option<String>,
+    avatar_url: String,
+    login: String,
+    name: String,
+}
+
+#[derive(SimpleObject)]
+struct AuthPayload {
+    token: String,
+    user: User,
+}
+
+#[derive(Serialize, Deserialize)]
+struct DbUser {
+    github_login: String,
+    name: Option<String>,
+    avatar: Option<String>,
+    github_token: String,
+}
+
+async fn request_github_token(credential: GithubCredential) -> GithubCredentialResponse {
+    let client = ReqwestClient::new();
+    client
+        .post("https://github.com/login/oauth/access_token")
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .json(&credential)
+        .send()
+        .await
+        .unwrap()
+        .json::<GithubCredentialResponse>()
+        .await
+        .unwrap()
+}
+
+async fn request_github_user_account(token: &String) -> GithubUserAccountResponse {
+    let client = ReqwestClient::new();
+    client
+        .get(format!(
+            "https://api.github.com/user?access_token={}",
+            token
+        ))
+        .send()
+        .await
+        .unwrap()
+        .json::<GithubUserAccountResponse>()
+        .await
+        .unwrap()
+}
+
+async fn authorize_with_github(credential: GithubCredential) -> GithubAuthorizeResponse {
+    let GithubCredentialResponse { access_token } = request_github_token(credential).await;
+    let GithubUserAccountResponse {
+        message,
+        avatar_url,
+        login,
+        name,
+    } = request_github_user_account(&access_token).await;
+
+    GithubAuthorizeResponse {
+        access_token,
+        message,
+        avatar_url,
+        login,
+        name,
     }
 }
 
@@ -201,6 +297,54 @@ impl MutationRoot {
         photos.push(new_photo.clone());
 
         new_photo
+    }
+
+    async fn github_auth(&self, ctx: &Context<'_>, code: String) -> Result<AuthPayload> {
+        let client_id = dotenv::var("CLIENT_ID").unwrap();
+        let client_secret = dotenv::var("CLIENT_SECRET").unwrap();
+        let GithubAuthorizeResponse {
+            message,
+            access_token,
+            avatar_url,
+            login,
+            name,
+        } = authorize_with_github(GithubCredential {
+            client_id,
+            client_secret,
+            code,
+        })
+        .await;
+
+        if let Some(err_msg) = message {
+            return Err(Error::new(err_msg));
+        }
+
+        let latest_user_info = DbUser {
+            name: Some(name),
+            github_login: login,
+            github_token: access_token,
+            avatar: Some(avatar_url),
+        };
+
+        let database = ctx.data::<Database>().unwrap();
+        database
+            .collection::<DbUser>("users")
+            .replace_one(
+                doc! {"github_login": &latest_user_info.github_login},
+                &latest_user_info,
+            )
+            .upsert(true)
+            .await
+            .unwrap();
+
+        Ok(AuthPayload {
+            token: latest_user_info.github_token,
+            user: User {
+                github_login: latest_user_info.github_login.into(),
+                name: latest_user_info.name,
+                avatar: latest_user_info.avatar,
+            },
+        })
     }
 }
 
