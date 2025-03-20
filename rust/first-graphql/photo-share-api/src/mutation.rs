@@ -7,6 +7,7 @@ use crate::{
     github::{authorize_with_github, GithubAuthorizeResponse, GithubCredential},
     photo::{Photo, PhotoCategory, PhotoDocument},
     random_user::random_user,
+    tag::TagDocument,
     user::{User, UserDocument},
 };
 
@@ -40,12 +41,18 @@ impl MutationRoot {
         };
 
         let database = ctx.data::<Database>().unwrap();
-        let collection = database.collection::<PhotoDocument>("photos");
-        let insert_result = collection.insert_one(&new_photo).await?;
+        let photo_collection = database.collection::<PhotoDocument>("photos");
+        let insert_result = photo_collection.insert_one(&new_photo).await?;
         let insert_id = insert_result
             .inserted_id
             .as_object_id()
             .ok_or("Failed to convert")?;
+        let new_tag = TagDocument {
+            photo_id: insert_id.to_string(),
+            user_id: new_photo.user_id.clone(),
+        };
+        let tag_collection = database.collection::<TagDocument>("tags");
+        tag_collection.insert_one(&new_tag).await?;
         let photo = Photo {
             id: insert_id.into(),
             name: new_photo.name,

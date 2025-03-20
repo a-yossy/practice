@@ -1,17 +1,15 @@
-use std::sync::LazyLock;
-
 use async_graphql::{ComplexObject, Context, Enum, Error, Result, SimpleObject, ID as GraphqlID};
+use futures::TryStreamExt;
 use mongodb::{
     bson::{doc, oid::ObjectId},
     Database,
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 
 use crate::{
     datetime::DateTime,
-    user::{User, UserDocument, USERS},
-    TAGS,
+    tag::TagDocument,
+    user::{User, UserDocument},
 };
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,8 +20,6 @@ pub enum PhotoCategory {
     Landscape,
     Graphic,
 }
-
-pub static PHOTOS: LazyLock<Mutex<Vec<Photo>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 #[derive(Serialize, Deserialize)]
 pub struct PhotoDocument {
@@ -72,16 +68,31 @@ impl Photo {
         }
     }
 
-    async fn tagged_users(&self) -> Vec<User> {
-        let tags = TAGS.lock().await;
-        let users = USERS.lock().await;
+    async fn tagged_users(&self, ctx: &Context<'_>) -> Vec<User> {
+        let database = ctx.data::<Database>().unwrap();
+        let tag_collection = database.collection::<TagDocument>("tags");
+        let mut tag_cursor = tag_collection.find(doc! {}).await.unwrap();
+        let mut tags = Vec::new();
+        while let Some(tag) = tag_cursor.try_next().await.unwrap() {
+            tags.push(tag);
+        }
+        let user_collection = database.collection::<UserDocument>("users");
+        let mut user_cursor = user_collection.find(doc! {}).await.unwrap();
+        let mut users = Vec::new();
+        while let Some(user) = user_cursor.try_next().await.unwrap() {
+            users.push(User {
+                github_login: user.github_login.into(),
+                name: user.name,
+                avatar: user.avatar,
+            });
+        }
         tags.iter()
-            .filter(|tag| tag.photo_id == self.id)
+            .filter(|tag| tag.photo_id == self.id.to_string())
             .map(|tag| &tag.user_id)
             .map(|user_id| {
                 users
                     .iter()
-                    .find(|user| user.github_login == *user_id)
+                    .find(|user| user.github_login.to_string() == *user_id)
                     .unwrap()
             })
             .cloned()
