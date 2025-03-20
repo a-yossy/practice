@@ -5,8 +5,10 @@ use async_graphql::{
     InputValueError, Object, Result, Scalar, ScalarType, Schema, SimpleObject, Value,
     ID as GraphqlID,
 };
-use async_graphql_axum::GraphQL;
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
+    extract::State,
+    http::HeaderMap,
     response::{self, IntoResponse},
     routing::get,
     Router,
@@ -186,6 +188,10 @@ impl QueryRoot {
 
         users
     }
+
+    async fn me(&self, ctx: &Context<'_>) -> Result<User> {
+        ctx.data::<User>().cloned()
+    }
 }
 
 #[derive(Serialize)]
@@ -347,8 +353,45 @@ impl MutationRoot {
     }
 }
 
+async fn graphql_handler(
+    State(AppState { schema, database }): State<AppState>,
+    headers: HeaderMap,
+    req: GraphQLRequest,
+) -> GraphQLResponse {
+    let mut request = req.into_inner();
+    if let Some(token) = get_token_from_headers(&headers) {
+        let collection = database.collection::<DbUser>("users");
+        let user = collection.find_one(doc! {"github_token": token.0}).await;
+        if let Ok(user) = user {
+            if let Some(user) = user {
+                let user = User {
+                    name: user.name,
+                    avatar: user.avatar,
+                    github_login: user.github_login.into(),
+                };
+                request = request.data(user);
+            }
+        }
+    }
+    schema.execute(request).await.into()
+}
+
 async fn graphiql() -> impl IntoResponse {
     response::Html(GraphiQLSource::build().finish())
+}
+
+struct Token(String);
+
+fn get_token_from_headers(headers: &HeaderMap) -> Option<Token> {
+    headers
+        .get("Authorization")
+        .and_then(|value| value.to_str().map(|s| Token(s.to_string())).ok())
+}
+
+#[derive(Clone)]
+struct AppState {
+    schema: Schema<QueryRoot, MutationRoot, EmptySubscription>,
+    database: Database,
 }
 
 #[tokio::main]
@@ -425,9 +468,11 @@ async fn main() {
     }
 
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-        .data(database)
+        .data(database.clone())
         .finish();
-    let app = Router::new().route("/", get(graphiql).post_service(GraphQL::new(schema)));
+    let app = Router::new()
+        .route("/", get(graphiql).post(graphql_handler))
+        .with_state(AppState { schema, database });
     axum::serve(TcpListener::bind("127.0.0.1:8000").await.unwrap(), app)
         .await
         .unwrap();
