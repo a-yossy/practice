@@ -96,7 +96,6 @@ impl Photo {
             };
 
             Ok(user)
-            
         } else {
             Err(Error::new("Not found user"))
         }
@@ -313,6 +312,31 @@ async fn authorize_with_github(credential: GithubCredential) -> GithubAuthorizeR
     }
 }
 
+#[derive(Deserialize)]
+struct RandomUserLoginResponse {
+    username: String,
+    sha1: String,
+}
+#[derive(Deserialize)]
+struct RandomUserNameResponse {
+    first: String,
+    last: String,
+}
+#[derive(Deserialize)]
+struct RandomUserPictureResponse {
+    thumbnail: String,
+}
+#[derive(Deserialize)]
+struct RandomUserResponseBody {
+    login: RandomUserLoginResponse,
+    name: RandomUserNameResponse,
+    picture: RandomUserPictureResponse,
+}
+#[derive(Deserialize)]
+struct RandomUserResponse {
+    results: Vec<RandomUserResponseBody>,
+}
+
 struct MutationRoot;
 
 #[Object]
@@ -375,8 +399,8 @@ impl MutationRoot {
         };
 
         let database = ctx.data::<Database>().unwrap();
-        database
-            .collection::<UserDocument>("users")
+        let collection = database.collection::<UserDocument>("users");
+        collection
             .replace_one(
                 doc! {"github_login": &latest_user_info.github_login},
                 &latest_user_info,
@@ -393,6 +417,45 @@ impl MutationRoot {
                 avatar: latest_user_info.avatar,
             },
         })
+    }
+
+    async fn add_fake_users(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(default = 1)] count: usize,
+    ) -> Result<Vec<User>> {
+        let random_user_api = format!("https://randomuser.me/api/?results={}", count);
+        let client = ReqwestClient::new();
+        let results = client
+            .get(random_user_api)
+            .send()
+            .await
+            .unwrap()
+            .json::<RandomUserResponse>()
+            .await
+            .unwrap();
+        let new_users = results
+            .results
+            .iter()
+            .map(|result| UserDocument {
+                github_login: result.login.username.clone(),
+                name: Some(format!("{} {}", result.name.first, result.name.last)),
+                avatar: Some(result.picture.thumbnail.clone()),
+                github_token: result.login.sha1.clone(),
+            })
+            .collect::<Vec<UserDocument>>();
+        let database = ctx.data::<Database>().unwrap();
+        let collection = database.collection::<UserDocument>("users");
+        collection.insert_many(&new_users).await?;
+
+        Ok(new_users
+            .iter()
+            .map(|user| User {
+                name: user.name.clone(),
+                avatar: user.avatar.clone(),
+                github_login: user.github_login.clone().into(),
+            })
+            .collect::<Vec<User>>())
     }
 }
 
