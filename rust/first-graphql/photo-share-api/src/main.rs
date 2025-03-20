@@ -15,7 +15,10 @@ use axum::{
 };
 use chrono::{DateTime as ChronoDateTime, TimeZone, Utc};
 use futures::stream::TryStreamExt;
-use mongodb::{bson::doc, Client, Database};
+use mongodb::{
+    bson::{doc, oid::ObjectId},
+    Client, Database,
+};
 use reqwest::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, sync::Mutex};
@@ -50,6 +53,17 @@ enum PhotoCategory {
     Graphic,
 }
 
+#[derive(Serialize)]
+struct PhotoDocument {
+    #[serde(rename = "_id", skip_serializing)]
+    id: Option<ObjectId>,
+    name: String,
+    description: Option<String>,
+    category: PhotoCategory,
+    user_id: String,
+    created: DateTime,
+}
+
 #[derive(SimpleObject, Clone, Serialize, Deserialize)]
 #[graphql(complex)]
 struct Photo {
@@ -68,14 +82,23 @@ impl Photo {
         format!("https://yoursite.com/img/{}.jpg", *self.id)
     }
 
-    async fn posted_by(&self) -> User {
-        USERS
-            .lock()
-            .await
-            .iter()
-            .find(|user| user.github_login == self.github_user)
-            .unwrap()
-            .clone()
+    async fn posted_by(&self, ctx: &Context<'_>) -> Result<User> {
+        let database = ctx.data::<Database>().unwrap();
+        let collection = database.collection::<DbUser>("users");
+        let user = collection
+            .find_one(doc! {"github_login": self.github_user.to_string()})
+            .await?;
+        if let Some(user) = user {
+            let user = User {
+                name: user.name,
+                avatar: user.avatar,
+                github_login: user.github_login.into(),
+            };
+
+            Ok(user)
+        } else {
+            return Err(Error::new("Not found user"));
+        }
     }
 
     async fn tagged_users(&self) -> Vec<User> {
@@ -143,7 +166,6 @@ struct PostPhotoInput {
 static PHOTOS: LazyLock<Mutex<Vec<Photo>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static USERS: LazyLock<Mutex<Vec<User>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 static TAGS: LazyLock<Mutex<Vec<Tag>>> = LazyLock::new(|| Mutex::new(Vec::new()));
-static ID: LazyLock<Mutex<usize>> = LazyLock::new(|| Mutex::new(0));
 
 struct QueryRoot;
 
@@ -287,21 +309,34 @@ struct MutationRoot;
 
 #[Object]
 impl MutationRoot {
-    async fn post_photo(&self, input: PostPhotoInput) -> Photo {
-        let mut photos = PHOTOS.lock().await;
-        let mut id = ID.lock().await;
-        *id += 1;
-        let new_photo = Photo {
-            id: GraphqlID::from(id),
+    async fn post_photo(&self, ctx: &Context<'_>, input: PostPhotoInput) -> Result<Photo> {
+        let current_user = ctx.data::<User>()?;
+        let new_photo = PhotoDocument {
+            id: None,
             name: input.name,
             description: input.description,
             category: input.category,
-            github_user: GraphqlID::from("mHattrup"),
+            user_id: current_user.github_login.clone().into(),
             created: DateTime(Utc::now()),
         };
-        photos.push(new_photo.clone());
 
-        new_photo
+        let database = ctx.data::<Database>().unwrap();
+        let collection = database.collection::<PhotoDocument>("photos");
+        let insert_result = collection.insert_one(&new_photo).await?;
+        let insert_id = insert_result
+            .inserted_id
+            .as_object_id()
+            .ok_or("Failed to convert")?;
+        let photo = Photo {
+            id: insert_id.into(),
+            name: new_photo.name,
+            description: new_photo.description,
+            category: new_photo.category,
+            github_user: new_photo.user_id.into(),
+            created: new_photo.created,
+        };
+
+        Ok(photo)
     }
 
     async fn github_auth(&self, ctx: &Context<'_>, code: String) -> Result<AuthPayload> {
