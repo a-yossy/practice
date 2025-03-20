@@ -53,7 +53,7 @@ enum PhotoCategory {
     Graphic,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct PhotoDocument {
     #[serde(rename = "_id", skip_serializing)]
     id: Option<ObjectId>,
@@ -64,7 +64,7 @@ struct PhotoDocument {
     created: DateTime,
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Clone)]
 #[graphql(complex)]
 struct Photo {
     id: GraphqlID,
@@ -84,7 +84,7 @@ impl Photo {
 
     async fn posted_by(&self, ctx: &Context<'_>) -> Result<User> {
         let database = ctx.data::<Database>().unwrap();
-        let collection = database.collection::<DbUser>("users");
+        let collection = database.collection::<UserDocument>("users");
         let user = collection
             .find_one(doc! {"github_login": self.github_user.to_string()})
             .await?;
@@ -96,8 +96,9 @@ impl Photo {
             };
 
             Ok(user)
+            
         } else {
-            return Err(Error::new("Not found user"));
+            Err(Error::new("Not found user"))
         }
     }
 
@@ -118,7 +119,7 @@ impl Photo {
     }
 }
 
-#[derive(SimpleObject, Clone, Serialize, Deserialize)]
+#[derive(SimpleObject, Clone)]
 #[graphql(complex)]
 struct User {
     github_login: GraphqlID,
@@ -173,17 +174,24 @@ struct QueryRoot;
 impl QueryRoot {
     async fn total_photos(&self, ctx: &Context<'_>) -> usize {
         let database = ctx.data::<Database>().unwrap();
-        let photos = database.collection::<Photo>("photos");
+        let photos = database.collection::<PhotoDocument>("photos");
         photos.count_documents(doc! {}).await.unwrap() as usize
     }
 
     async fn all_photos(&self, ctx: &Context<'_>) -> Vec<Photo> {
         let database = ctx.data::<Database>().unwrap();
-        let collection = database.collection::<Photo>("photos");
+        let collection = database.collection::<PhotoDocument>("photos");
         let mut cursor = collection.find(doc! {}).await.unwrap();
         let mut photos = Vec::new();
         while let Some(photo) = cursor.try_next().await.unwrap() {
-            photos.push(photo);
+            photos.push(Photo {
+                id: photo.id.unwrap().into(),
+                name: photo.name,
+                description: photo.description,
+                category: photo.category,
+                github_user: photo.user_id.into(),
+                created: photo.created,
+            });
         }
 
         photos
@@ -191,13 +199,13 @@ impl QueryRoot {
 
     async fn total_users(&self, ctx: &Context<'_>) -> usize {
         let database = ctx.data::<Database>().unwrap();
-        let users = database.collection::<Vec<DbUser>>("users");
+        let users = database.collection::<Vec<UserDocument>>("users");
         users.count_documents(doc! {}).await.unwrap() as usize
     }
 
     async fn all_users(&self, ctx: &Context<'_>) -> Vec<User> {
         let database = ctx.data::<Database>().unwrap();
-        let collection = database.collection::<DbUser>("users");
+        let collection = database.collection::<UserDocument>("users");
         let mut cursor = collection.find(doc! {}).await.unwrap();
         let mut users = Vec::new();
         while let Some(user) = cursor.try_next().await.unwrap() {
@@ -251,7 +259,7 @@ struct AuthPayload {
 }
 
 #[derive(Serialize, Deserialize)]
-struct DbUser {
+struct UserDocument {
     github_login: String,
     name: Option<String>,
     avatar: Option<String>,
@@ -359,7 +367,7 @@ impl MutationRoot {
             return Err(Error::new(err_msg));
         }
 
-        let latest_user_info = DbUser {
+        let latest_user_info = UserDocument {
             name,
             github_login: login,
             github_token: access_token,
@@ -368,7 +376,7 @@ impl MutationRoot {
 
         let database = ctx.data::<Database>().unwrap();
         database
-            .collection::<DbUser>("users")
+            .collection::<UserDocument>("users")
             .replace_one(
                 doc! {"github_login": &latest_user_info.github_login},
                 &latest_user_info,
@@ -395,7 +403,7 @@ async fn graphql_handler(
 ) -> GraphQLResponse {
     let mut request = req.into_inner();
     if let Some(token) = get_token_from_headers(&headers) {
-        let collection = database.collection::<DbUser>("users");
+        let collection = database.collection::<UserDocument>("users");
         let user = collection.find_one(doc! {"github_token": token.0}).await;
         if let Ok(user) = user {
             if let Some(user) = user {
