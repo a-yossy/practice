@@ -457,6 +457,31 @@ impl MutationRoot {
             })
             .collect::<Vec<User>>())
     }
+
+    async fn fake_user_auth(
+        &self,
+        ctx: &Context<'_>,
+        github_login: GraphqlID,
+    ) -> Result<AuthPayload> {
+        let database = ctx.data::<Database>().unwrap();
+        let collection = database.collection::<UserDocument>("users");
+        let user = collection
+            .find_one(doc! {"github_login": github_login.to_string()})
+            .await
+            .unwrap();
+        if let Some(user) = user {
+            Ok(AuthPayload {
+                token: user.github_token,
+                user: User {
+                    github_login,
+                    name: user.name,
+                    avatar: user.avatar,
+                },
+            })
+        } else {
+            Err(Error::new("Cannot find user"))
+        }
+    }
 }
 
 async fn graphql_handler(
