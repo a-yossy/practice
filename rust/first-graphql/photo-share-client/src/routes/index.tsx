@@ -1,3 +1,5 @@
+import "../main.css";
+import { createFileRoute } from "@tanstack/react-router";
 import { gql, useMutation, useQuery } from "@apollo/client";
 
 const ROOT_QUERY = gql`
@@ -52,7 +54,7 @@ const UserListItem = ({ name, avatar }) => (
   </li>
 );
 
-export const Users = () => {
+const Index = () => {
   const { loading, error, data, refetch } = useQuery(ROOT_QUERY);
 
   if (loading) return <p>Loading...</p>;
@@ -68,3 +70,7 @@ export const Users = () => {
     </>
   );
 };
+
+export const Route = createFileRoute("/")({
+  component: Index,
+});
