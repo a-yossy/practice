@@ -1,4 +1,4 @@
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, Object};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Database};
 
@@ -58,7 +58,7 @@ impl QueryRoot {
         users
     }
 
-    async fn me(&self, ctx: &Context<'_>) -> Result<User> {
-        ctx.data::<User>().cloned()
+    async fn me(&self, ctx: &Context<'_>) -> Option<User> {
+        ctx.data::<User>().ok().map(|user| user.clone())
     }
 }

@@ -20,6 +20,9 @@ if (rootElement !== null && !rootElement.innerHTML) {
   const client = new ApolloClient({
     uri: "http://localhost:8000",
     cache: new InMemoryCache(),
+    headers: {
+      authorization: localStorage.getItem("token"),
+    },
   });
 
   root.render(

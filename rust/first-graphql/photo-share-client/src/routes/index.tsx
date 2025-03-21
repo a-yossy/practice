@@ -1,15 +1,23 @@
 import "../main.css";
 import { createFileRoute } from "@tanstack/react-router";
 import { gql, useMutation, useQuery } from "@apollo/client";
+import { AuthorizedUser } from "../AuthorizedUser";
 
-const ROOT_QUERY = gql`
+export const ROOT_QUERY = gql`
   query allUsers {
     totalUsers
     allUsers {
-      githubLogin
-      name
-      avatar
+      ...userInfo
     }
+    me {
+      ...userInfo
+    }
+  }
+
+  fragment userInfo on User {
+    githubLogin
+    name
+    avatar
   }
 `;
 
@@ -31,6 +39,7 @@ const UserList = ({ count, users, refetchUsers }) => {
 
   return (
     <div>
+      <AuthorizedUser />
       <p>{count} Users</p>
       <button onClick={() => refetchUsers()}>Refetch Users</button>
       <button onClick={addFakeUsers}>Add Fake Users</button>
