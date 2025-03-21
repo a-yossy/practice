@@ -17,6 +17,7 @@ struct PostPhotoInput {
     #[graphql(default_with = "PhotoCategory::Portrait")]
     category: PhotoCategory,
     description: Option<String>,
+    tagged_user_ids: Option<Vec<String>>,
 }
 
 #[derive(SimpleObject)]
@@ -47,12 +48,17 @@ impl MutationRoot {
             .inserted_id
             .as_object_id()
             .ok_or("Failed to convert")?;
-        let new_tag = TagDocument {
-            photo_id: insert_id.to_string(),
-            user_id: new_photo.user_id.clone(),
-        };
-        let tag_collection = database.collection::<TagDocument>("tags");
-        tag_collection.insert_one(&new_tag).await?;
+        if let Some(tagged_user_ids) = input.tagged_user_ids {
+            let tag_collection = database.collection::<TagDocument>("tags");
+            let new_tags: Vec<TagDocument> = tagged_user_ids
+                .into_iter()
+                .map(|user_id| TagDocument {
+                    photo_id: insert_id.to_string(),
+                    user_id,
+                })
+                .collect();
+            tag_collection.insert_many(&new_tags).await?;
+        }
         let photo = Photo {
             id: insert_id.into(),
             name: new_photo.name,
@@ -61,7 +67,6 @@ impl MutationRoot {
             github_user: new_photo.user_id.into(),
             created: new_photo.created,
         };
-
         Ok(photo)
     }
 
