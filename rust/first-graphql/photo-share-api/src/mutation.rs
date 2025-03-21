@@ -1,6 +1,9 @@
 use async_graphql::{Context, Error, InputObject, Object, Result, SimpleObject, ID as GraphqlID};
 use chrono::Utc;
-use mongodb::{bson::doc, Database};
+use mongodb::{
+    bson::{doc, oid::ObjectId},
+    Database,
+};
 
 use crate::{
     datetime::DateTime,
@@ -24,6 +27,13 @@ struct PostPhotoInput {
 struct AuthPayload {
     token: String,
     user: User,
+}
+
+#[derive(InputObject)]
+struct TagPhotoWithUsersInput {
+    photo_id: String,
+    #[graphql(validator(min_items = 1))]
+    user_ids: Vec<String>,
 }
 
 pub struct MutationRoot;
@@ -171,5 +181,48 @@ impl MutationRoot {
         } else {
             Err(Error::new("Cannot find user"))
         }
+    }
+
+    async fn tag_photo_with_users(
+        &self,
+        ctx: &Context<'_>,
+        input: TagPhotoWithUsersInput,
+    ) -> Result<Photo> {
+        let database = ctx.data::<Database>().unwrap();
+        let photo_collection = database.collection::<PhotoDocument>("photos");
+        let photo = photo_collection
+            .find_one(doc! {"_id": ObjectId::parse_str(&input.photo_id).unwrap()})
+            .await
+            .unwrap()
+            .ok_or("photo not found")?;
+        let user_collection = database.collection::<UserDocument>("users");
+        let user_count = user_collection
+            .count_documents(doc! { "github_login": { "$in": &input.user_ids }})
+            .await?;
+        if input.user_ids.len() != user_count as usize {
+            return Err(Error::new("user not found"));
+        }
+        let tag_collection = database.collection::<TagDocument>("tags");
+        tag_collection
+            .delete_many(doc! {"photo_id": &input.photo_id})
+            .await?;
+        let new_tags: Vec<TagDocument> = input
+            .user_ids
+            .into_iter()
+            .map(|user_id| TagDocument {
+                photo_id: input.photo_id.clone(),
+                user_id,
+            })
+            .collect();
+        tag_collection.insert_many(&new_tags).await?;
+        let photo = Photo {
+            id: photo.id.unwrap().into(),
+            name: photo.name,
+            description: photo.description,
+            category: photo.category,
+            github_user: photo.user_id.into(),
+            created: photo.created,
+        };
+        Ok(photo)
     }
 }
