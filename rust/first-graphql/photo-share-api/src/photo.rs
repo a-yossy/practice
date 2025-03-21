@@ -71,13 +71,19 @@ impl Photo {
     async fn tagged_users(&self, ctx: &Context<'_>) -> Vec<User> {
         let database = ctx.data::<Database>().unwrap();
         let tag_collection = database.collection::<TagDocument>("tags");
-        let mut tag_cursor = tag_collection.find(doc! {}).await.unwrap();
-        let mut tags = Vec::new();
+        let mut tag_cursor = tag_collection
+            .find(doc! { "photo_id": self.id.to_string() })
+            .await
+            .unwrap();
+        let mut user_ids = Vec::new();
         while let Some(tag) = tag_cursor.try_next().await.unwrap() {
-            tags.push(tag);
+            user_ids.push(tag.user_id);
         }
         let user_collection = database.collection::<UserDocument>("users");
-        let mut user_cursor = user_collection.find(doc! {}).await.unwrap();
+        let mut user_cursor = user_collection
+            .find(doc! { "github_login": { "$in": user_ids } })
+            .await
+            .unwrap();
         let mut users = Vec::new();
         while let Some(user) = user_cursor.try_next().await.unwrap() {
             users.push(User {
@@ -86,16 +92,6 @@ impl Photo {
                 avatar: user.avatar,
             });
         }
-        tags.iter()
-            .filter(|tag| tag.photo_id == self.id.to_string())
-            .map(|tag| &tag.user_id)
-            .map(|user_id| {
-                users
-                    .iter()
-                    .find(|user| user.github_login.to_string() == *user_id)
-                    .unwrap()
-            })
-            .cloned()
-            .collect()
+        users
     }
 }

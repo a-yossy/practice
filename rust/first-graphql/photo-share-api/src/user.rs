@@ -1,6 +1,9 @@
 use async_graphql::{ComplexObject, Context, SimpleObject, ID as GraphqlID};
 use futures::TryStreamExt;
-use mongodb::{bson::doc, Database};
+use mongodb::{
+    bson::{doc, oid::ObjectId},
+    Database,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -51,13 +54,19 @@ impl User {
     async fn in_photos(&self, ctx: &Context<'_>) -> Vec<Photo> {
         let database = ctx.data::<Database>().unwrap();
         let tag_collection = database.collection::<TagDocument>("tags");
-        let mut tag_cursor = tag_collection.find(doc! {}).await.unwrap();
-        let mut tags = Vec::new();
+        let mut tag_cursor = tag_collection
+            .find(doc! { "user_id": self.github_login.to_string() })
+            .await
+            .unwrap();
+        let mut photo_ids = Vec::new();
         while let Some(tag) = tag_cursor.try_next().await.unwrap() {
-            tags.push(tag);
+            photo_ids.push(ObjectId::parse_str(tag.photo_id).unwrap());
         }
         let photo_collection = database.collection::<PhotoDocument>("photos");
-        let mut photo_cursor = photo_collection.find(doc! {}).await.unwrap();
+        let mut photo_cursor = photo_collection
+            .find(doc! { "_id": { "$in": photo_ids } })
+            .await
+            .unwrap();
         let mut photos = Vec::new();
         while let Some(photo) = photo_cursor.try_next().await.unwrap() {
             photos.push(Photo {
@@ -69,16 +78,6 @@ impl User {
                 created: photo.created,
             });
         }
-        tags.iter()
-            .filter(|tag| tag.user_id == self.github_login.to_string())
-            .map(|tag| &tag.photo_id)
-            .map(|photo_id| {
-                photos
-                    .iter()
-                    .find(|photo| photo.id.to_string() == *photo_id)
-                    .unwrap()
-            })
-            .cloned()
-            .collect()
+        photos
     }
 }
