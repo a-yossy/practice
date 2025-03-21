@@ -7,6 +7,7 @@ use axum::{
     routing::get,
     Router,
 };
+use tower_http::cors::{CorsLayer, Any};
 use mongodb::{bson::doc, Client, Database};
 use mutation::MutationRoot;
 use query::QueryRoot;
@@ -70,8 +71,14 @@ async fn main() {
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
         .data(database.clone())
         .finish();
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
+        .layer(cors)
         .with_state(AppState { schema, database });
     axum::serve(TcpListener::bind("127.0.0.1:8000").await.unwrap(), app)
         .await
