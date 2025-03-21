@@ -1,9 +1,15 @@
 import "./index.css";
-import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  createHttpLink,
+} from "@apollo/client";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { persistCache } from "apollo3-cache-persist";
+import { setContext } from "@apollo/client/link/context";
 
 import { routeTree } from "./routeTree.gen";
 
@@ -19,20 +25,31 @@ const rootElement = document.getElementById("root");
 if (rootElement !== null && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   const cache = new InMemoryCache();
+  const httpLink = createHttpLink({
+    uri: "http://localhost:8000",
+  });
+
+  const authLink = setContext((_, { headers }) => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        ...headers,
+        Authorization: token ? token : "",
+      },
+    };
+  });
+
   persistCache({
     cache,
     storage: localStorage,
   });
   const client = new ApolloClient({
-    uri: "http://localhost:8000",
+    link: authLink.concat(httpLink),
     cache,
-    headers: {
-      Authorization: localStorage.getItem("token"),
-    },
   });
-  if (localStorage['apollo-cache-persist']) {
-    const cacheData = JSON.parse(localStorage['apollo-cache-persist'])
-    cache.restore(cacheData)
+  if (localStorage["apollo-cache-persist"]) {
+    const cacheData = JSON.parse(localStorage["apollo-cache-persist"]);
+    cache.restore(cacheData);
   }
 
   root.render(
