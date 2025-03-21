@@ -1,4 +1,4 @@
-import { useMutation, gql, useQuery } from "@apollo/client";
+import { useMutation, gql, useQuery, useApolloClient } from "@apollo/client";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ROOT_QUERY } from "./routes";
@@ -38,6 +38,7 @@ const Me = ({ logout, requestCode, signingIn }) => {
 export const AuthorizedUser = () => {
   const [signingIn, setSigningIn] = useState(false);
   const navigate = useNavigate();
+  const client = useApolloClient();
   const authorizationComplete = (cache, { data }) => {
     localStorage.setItem("token", data.githubAuth.token);
     navigate({ to: "/" });
@@ -65,7 +66,12 @@ export const AuthorizedUser = () => {
     <Me
       signingIn={signingIn}
       requestCode={requestCode}
-      logout={() => localStorage.removeItem("token")}
+      logout={() => {
+        localStorage.removeItem("token");
+        const data = client.readQuery({ query: ROOT_QUERY });
+        data.me = null;
+        client.writeQuery({ query: ROOT_QUERY, data: { ...data, me: null } });
+      }}
     />
   );
 };

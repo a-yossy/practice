@@ -32,9 +32,23 @@ const ADD_FAKE_USERS_MUTATION = gql`
 `;
 
 const UserList = ({ count, users, refetchUsers }) => {
+  const updateUserCache = (cache, { data: { addFakeUsers } }) => {
+    const data = cache.readQuery({ query: ROOT_QUERY });
+    const totalUsers = data.totalUsers + addFakeUsers.length;
+    const allUsers = [...data.allUsers, ...addFakeUsers];
+    cache.writeQuery({
+      query: ROOT_QUERY,
+      data: {
+        totalUsers,
+        allUsers,
+        me: data.me,
+      },
+    });
+  };
+
   const [addFakeUsers] = useMutation(ADD_FAKE_USERS_MUTATION, {
-    refetchQueries: [{ query: ROOT_QUERY }],
     variables: { count: 1 },
+    update: updateUserCache,
   });
 
   return (
@@ -64,7 +78,9 @@ const UserListItem = ({ name, avatar }) => (
 );
 
 const Index = () => {
-  const { loading, error, data, refetch } = useQuery(ROOT_QUERY);
+  const { loading, error, data, refetch } = useQuery(ROOT_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
