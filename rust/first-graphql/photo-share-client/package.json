@@ -9,6 +9,8 @@
     "clean": "farm clean"
   },
   "dependencies": {
+    "@apollo/client": "^3.13.5",
+    "graphql": "^16.10.0",
     "react": "18",
     "react-dom": "18"
   },
