@@ -3,7 +3,7 @@ use chrono::{DateTime as ChronoDateTime, Utc};
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DateTime(pub ChronoDateTime<Utc>);
 
 #[Scalar]

@@ -2,13 +2,13 @@ use std::{
     any::{Any, TypeId},
     collections::HashMap,
     marker::PhantomData,
+    pin::Pin,
     sync::Mutex,
+    task::{Context, Poll},
 };
 
-use futures::{
-    channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
-    Stream, StreamExt,
-};
+use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures_util::{Stream, StreamExt};
 use once_cell::sync::Lazy;
 use slab::Slab;
 
@@ -39,10 +39,7 @@ impl<T: Sync + Send + Clone + 'static> Drop for BrokerStream<T> {
 impl<T: Sync + Send + Clone + 'static> Stream for BrokerStream<T> {
     type Item = T;
 
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.1.poll_next_unpin(cx)
     }
 }

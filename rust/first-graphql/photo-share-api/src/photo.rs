@@ -12,7 +12,7 @@ use crate::{
     user::{User, UserDocument},
 };
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum PhotoCategory {
     Selfie,
     Portrait,
@@ -32,7 +32,7 @@ pub struct PhotoDocument {
     pub created: DateTime,
 }
 
-#[derive(SimpleObject, Clone)]
+#[derive(SimpleObject, Clone, Debug)]
 #[graphql(complex)]
 pub struct Photo {
     pub id: GraphqlID,
