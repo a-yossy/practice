@@ -12,6 +12,7 @@
     "@apollo/client": "^3.13.5",
     "@tanstack/react-router": "^1.114.27",
     "graphql": "^16.10.0",
+    "graphql-ws": "^6.0.4",
     "react": "18",
     "react-dom": "18"
   },
