@@ -1,5 +1,5 @@
 use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema};
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
     http::HeaderMap,
@@ -45,7 +45,12 @@ async fn graphql_handler(
 }
 
 async fn graphiql() -> impl IntoResponse {
-    response::Html(GraphiQLSource::build().endpoint("/").finish())
+    response::Html(
+        GraphiQLSource::build()
+            .endpoint("/")
+            .subscription_endpoint("/ws")
+            .finish(),
+    )
 }
 
 struct Token(String);
@@ -78,6 +83,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
+        .route_service("/ws", GraphQLSubscription::new(schema.clone()))
         .layer(cors)
         .with_state(AppState { schema, database });
     axum::serve(TcpListener::bind("127.0.0.1:8000").await.unwrap(), app)

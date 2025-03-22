@@ -59,6 +59,6 @@ impl QueryRoot {
     }
 
     async fn me(&self, ctx: &Context<'_>) -> Option<User> {
-        ctx.data::<User>().ok().map(|user| user.clone())
+        ctx.data::<User>().ok().cloned()
     }
 }
