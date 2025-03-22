@@ -1,4 +1,4 @@
-use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema};
+use async_graphql::{http::GraphiQLSource, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
@@ -21,6 +21,7 @@ mod mutation;
 mod photo;
 mod query;
 mod random_user;
+mod simple_broker;
 mod subscription;
 mod tag;
 mod user;

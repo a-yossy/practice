@@ -1,18 +1,13 @@
-use std::time::Duration;
-
-use async_graphql::Subscription;
+use async_graphql::{Enum, Subscription};
 use futures::{Stream, StreamExt};
+
+use crate::{photo::Photo, simple_broker::SimpleBroker};
 
 pub struct SubscriptionRoot;
 
 #[Subscription]
 impl SubscriptionRoot {
-    async fn integers(&self, #[graphql(default = 1)] step: i32) -> impl Stream<Item = i32> {
-        let mut value = 1;
-        tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(Duration::from_secs(1)))
-            .map(move |_| {
-                value += step;
-                value
-            })
+    async fn new_photo(&self) -> impl Stream<Item = Photo> {
+        SimpleBroker::<Photo>::subscribe()
     }
 }

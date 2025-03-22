@@ -10,6 +10,7 @@ use crate::{
     github::{authorize_with_github, GithubAuthorizeResponse, GithubCredential},
     photo::{Photo, PhotoCategory, PhotoDocument},
     random_user::random_user,
+    simple_broker::SimpleBroker,
     tag::TagDocument,
     user::{User, UserDocument},
 };
@@ -77,6 +78,7 @@ impl MutationRoot {
             github_user: new_photo.user_id.into(),
             created: new_photo.created,
         };
+        SimpleBroker::publish(photo.clone());
         Ok(photo)
     }
 
