@@ -7,11 +7,11 @@ use axum::{
     routing::get,
     Router,
 };
-use tower_http::cors::{CorsLayer, Any};
 use mongodb::{bson::doc, Client, Database};
 use mutation::MutationRoot;
 use query::QueryRoot;
 use tokio::net::TcpListener;
+use tower_http::cors::{Any, CorsLayer};
 use user::{User, UserDocument};
 
 mod datetime;
@@ -45,7 +45,7 @@ async fn graphql_handler(
 }
 
 async fn graphiql() -> impl IntoResponse {
-    response::Html(GraphiQLSource::build().finish())
+    response::Html(GraphiQLSource::build().endpoint("/").finish())
 }
 
 struct Token(String);
