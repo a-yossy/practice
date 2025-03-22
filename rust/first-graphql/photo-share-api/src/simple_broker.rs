@@ -52,7 +52,7 @@ impl<T: Sync + Send + Clone + 'static> SimpleBroker<T> {
             for (_, sender) in senders.0.iter_mut() {
                 sender.start_send(msg.clone()).ok();
             }
-        })
+        });
     }
 
     pub fn subscribe() -> impl Stream<Item = T> {
