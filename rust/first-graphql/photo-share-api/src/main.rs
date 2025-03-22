@@ -10,6 +10,7 @@ use axum::{
 use mongodb::{bson::doc, Client, Database};
 use mutation::MutationRoot;
 use query::QueryRoot;
+use subscription::SubscriptionRoot;
 use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use user::{User, UserDocument};
@@ -20,6 +21,7 @@ mod mutation;
 mod photo;
 mod query;
 mod random_user;
+mod subscription;
 mod tag;
 mod user;
 
@@ -63,7 +65,7 @@ fn get_token_from_headers(headers: &HeaderMap) -> Option<Token> {
 
 #[derive(Clone)]
 struct AppState {
-    schema: Schema<QueryRoot, MutationRoot, EmptySubscription>,
+    schema: Schema<QueryRoot, MutationRoot, SubscriptionRoot>,
     database: Database,
 }
 
@@ -73,7 +75,7 @@ async fn main() {
     let client = Client::with_uri_str(uri).await.unwrap();
     let database = client.database("sample");
 
-    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+    let schema = Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
         .data(database.clone())
         .finish();
     let cors = CorsLayer::new()

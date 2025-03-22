@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.44.0", features = ["full"] }
+tokio-stream = "0.1.17"
 axum = { version = "0.8.1", features = ["ws"] }
 async-graphql = "7.0.15"
 async-graphql-axum = "7.0.15"
