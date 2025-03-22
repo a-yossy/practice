@@ -119,14 +119,16 @@ impl MutationRoot {
             .upsert(true)
             .await
             .unwrap();
+        let user = User {
+            github_login: latest_user_info.github_login.into(),
+            name: latest_user_info.name,
+            avatar: latest_user_info.avatar,
+        };
+        SimpleBroker::publish(user.clone());
 
         Ok(AuthPayload {
             token: latest_user_info.github_token,
-            user: User {
-                github_login: latest_user_info.github_login.into(),
-                name: latest_user_info.name,
-                avatar: latest_user_info.avatar,
-            },
+            user,
         })
     }
 
@@ -149,15 +151,20 @@ impl MutationRoot {
         let database = ctx.data::<Database>().unwrap();
         let collection = database.collection::<UserDocument>("users");
         collection.insert_many(&new_users).await?;
-
-        Ok(new_users
+        let new_users = new_users
             .iter()
             .map(|user| User {
                 name: user.name.clone(),
                 avatar: user.avatar.clone(),
                 github_login: user.github_login.clone().into(),
             })
-            .collect::<Vec<User>>())
+            .collect::<Vec<User>>();
+        new_users
+            .iter()
+            .cloned()
+            .for_each(|user| SimpleBroker::publish(user));
+
+        Ok(new_users)
     }
 
     async fn fake_user_auth(
