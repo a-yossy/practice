@@ -60,7 +60,7 @@ export const AuthorizedUser = () => {
       const code = window.location.search.replace("?code=", "");
       githubAuth({ variables: { code } });
     }
-  }, [navigate]);
+  }, [githubAuth]);
 
   return (
     <Me
