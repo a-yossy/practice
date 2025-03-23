@@ -2,6 +2,7 @@ import "../main.css";
 import { createFileRoute } from "@tanstack/react-router";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { AuthorizedUser } from "../AuthorizedUser";
+import { PostPhoto } from "../UploadFile";
 
 export const ROOT_QUERY = gql`
   query allUsers {
@@ -11,6 +12,11 @@ export const ROOT_QUERY = gql`
     }
     me {
       ...userInfo
+    }
+    allPhotos {
+      id
+      name
+      url
     }
   }
 
@@ -30,6 +36,18 @@ const ADD_FAKE_USERS_MUTATION = gql`
     }
   }
 `;
+
+const Photos = ({ allPhotos }) => {
+  return (
+    <>
+      {allPhotos.map((photo) => {
+        return (
+          <img key={photo.id} src="" alt={photo.name} width={350} />
+        );
+      })}
+    </>
+  );
+};
 
 const UserList = ({ count, users, refetchUsers }) => {
   const [addFakeUsers] = useMutation(ADD_FAKE_USERS_MUTATION, {
@@ -72,11 +90,13 @@ const Index = () => {
 
   return (
     <>
+      <PostPhoto />
       <UserList
         count={data.totalUsers}
         users={data.allUsers}
         refetchUsers={refetch}
       />
+      <Photos allPhotos={data.allPhotos} />
     </>
   );
 };

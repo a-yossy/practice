@@ -1,4 +1,11 @@
-use async_graphql::{Context, Error, InputObject, Object, Result, SimpleObject, ID as GraphqlID};
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
+
+use async_graphql::{
+    Context, Error, InputObject, Object, Result, SimpleObject, Upload, ID as GraphqlID,
+};
 use chrono::Utc;
 use mongodb::{
     bson::{doc, oid::ObjectId},
@@ -21,6 +28,7 @@ struct PostPhotoInput {
     #[graphql(default_with = "PhotoCategory::Portrait")]
     category: PhotoCategory,
     description: Option<String>,
+    file: Upload,
     tagged_user_ids: Option<Vec<String>>,
 }
 
@@ -70,6 +78,13 @@ impl MutationRoot {
                 .collect();
             tag_collection.insert_many(&new_tags).await?;
         }
+
+        let path = format!("assets/photos/{}.jpg", insert_id);
+        let mut file_content = input.file.value(ctx).unwrap().content;
+        let mut buffer = Vec::new();
+        file_content.read_to_end(&mut buffer).unwrap();
+        let mut f = File::create(path).unwrap();
+        f.write_all(&buffer.clone()).unwrap();
         let photo = Photo {
             id: insert_id.into(),
             name: new_photo.name,

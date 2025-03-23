@@ -3,7 +3,6 @@ import {
   ApolloClient,
   InMemoryCache,
   ApolloProvider,
-  HttpLink,
   split,
   gql,
   useApolloClient,
@@ -15,6 +14,7 @@ import { persistCache } from "apollo3-cache-persist";
 import { setContext } from "@apollo/client/link/context";
 import { createClient } from "graphql-ws";
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 
 import { routeTree } from "./routeTree.gen";
 import { getMainDefinition } from "@apollo/client/utilities";
@@ -67,7 +67,7 @@ const rootElement = document.getElementById("root");
 if (rootElement !== null && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   const cache = new InMemoryCache();
-  const httpLink = new HttpLink({
+  const httpLink = createUploadLink({
     uri: "http://localhost:8000",
   });
   const authLink = setContext((_, { headers }) => {
