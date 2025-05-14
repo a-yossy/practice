@@ -1,0 +1,9 @@
+[package]
+name = "chapter19-1"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+lazy_static = "1.5.0"
+rayon = "1.10.0"
