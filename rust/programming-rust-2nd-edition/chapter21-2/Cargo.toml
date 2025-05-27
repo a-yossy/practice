@@ -1,0 +1,6 @@
+[package]
+name = "chapter21-2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
