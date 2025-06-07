@@ -1,0 +1,12 @@
+[package]
+name = "chapter6-1"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[[test]]
+name = "custom"
+path = "tests/custom.rs"
+harness = false
+
