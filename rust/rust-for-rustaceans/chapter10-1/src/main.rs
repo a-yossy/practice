@@ -37,14 +37,37 @@ fn main() {
     });
     let t3 = spawn(|| {
         while (!X.load(Ordering::Acquire)) {}
-        if (Y.load(Ordering::Acquire)) { // 1
+        if (Y.load(Ordering::Acquire)) {
+            // 1
             Z.fetch_add(1, Ordering::Relaxed);
         }
     });
     let t4 = spawn(|| {
         while (!Y.load(Ordering::Acquire)) {}
-        if (X.load(Ordering::Acquire)) { // 2
+        if (X.load(Ordering::Acquire)) {
+            // 2
             Z.fetch_add(1, Ordering::Relaxed);
         }
     });
+
+    static LOCK: AtomicBool = AtomicBool::new(false);
+
+    // fn mutex(f: impl FnOnce()) {
+    //     while LOCK.load(Ordering::Acquire) {}
+    //     LOCK.store(true, Ordering::Release);
+    //     f();
+    //     LOCK.store(false, Ordering::Release);
+    // }
+    fn mutex(f: impl FnOnce()) {
+        loop {
+            let take = LOCK.compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed);
+            match take {
+                Ok(false) => break,
+                Ok(true) | Err(false) => unreachable!(),
+                Err(true) => {}
+            }
+        }
+        f();
+        LOCK.store(false, Ordering::Release);
+    }
 }
