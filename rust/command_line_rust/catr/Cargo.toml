@@ -5,10 +5,10 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.79"
-clap = "2.33"
+clap = { version = "4.5.0", features = ["derive"] }
 
 [dev-dependencies]
-assert_cmd = "2"
-predicates = "2"
+assert_cmd = "2.0.13"
+predicates = "3.0.4"
 pretty_assertions = "1.4.0"
-rand = "0.8"
+rand = "0.8.5"

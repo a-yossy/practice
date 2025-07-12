@@ -1,8 +1,8 @@
-use catr::Args;
 use clap::Parser;
+use headr::Args;
 
 fn main() {
-    if let Err(e) = catr::run(Args::parse()) {
+    if let Err(e) = headr::run(Args::parse()) {
         eprintln!("{e}");
         std::process::exit(1);
     }
