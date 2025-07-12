@@ -1,8 +1,8 @@
 use anyhow::Result;
-use clap::Parser;
+use clap::{Parser, builder::Str};
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Read},
 };
 
 #[derive(Debug, Parser)]
@@ -17,7 +17,7 @@ pub struct Args {
         value_name = "LINES",
         value_parser = clap::value_parser!(u64).range(1..)
     )]
-    lines: usize,
+    lines: u64,
     #[arg(
         short('c'),
         long,
@@ -25,7 +25,7 @@ pub struct Args {
         conflicts_with("lines"),
         value_parser = clap::value_parser!(u64).range(1..)
     )]
-    bytes: Option<usize>,
+    bytes: Option<u64>,
 }
 
 fn open(filename: &str) -> Result<Box<dyn BufRead>> {
@@ -36,12 +36,36 @@ fn open(filename: &str) -> Result<Box<dyn BufRead>> {
 }
 
 pub fn run(args: Args) -> Result<()> {
-    for filename in args.files {
+    let num_files = args.files.len();
+
+    for (file_num, filename) in args.files.iter().enumerate() {
         match open(&filename) {
             Err(err) => eprintln!("{}: {}", filename, err),
-            Ok(_) => println!("Opened {}", filename),
+            Ok(mut file) => {
+                if num_files > 1 {
+                    println!("{}==> {filename} <==", if file_num > 0 { "\n" } else { "" });
+                }
+
+                if let Some(num_bytes) = args.bytes {
+                    let mut handle = file.take(num_bytes);
+                    let mut buffer = vec![0; num_bytes as usize];
+                    let bytes_read = handle.read(&mut buffer)?;
+                    print!("{}", String::from_utf8_lossy(&buffer[..bytes_read]));
+                } else {
+                    let mut line = String::new();
+                    for _ in 0..args.lines {
+                        let bytes = file.read_line(&mut line)?;
+                        if bytes == 0 {
+                            break;
+                        }
+                        print!("{line}");
+                        line.clear();
+                    }
+                }
+            }
         }
     }
+
     Ok(())
 }
 
