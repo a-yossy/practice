@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Parser, builder::Str};
+use clap::Parser;
 use std::{
     fs::File,
     io::{self, BufRead, BufReader, Read},
