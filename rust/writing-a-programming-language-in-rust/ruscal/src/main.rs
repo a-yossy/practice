@@ -1,195 +1,181 @@
+use nom::{
+    IResult,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{alpha1, alphanumeric1, char, multispace0},
+    combinator::{opt, recognize},
+    error::ParseError,
+    multi::{fold_many0, many0},
+    number::complete::recognize_float,
+    sequence::{delimited, pair},
+};
+
 fn main() {
+    fn ex_eval<'src>(input: &'src str) -> Result<f64, nom::Err<nom::error::Error<&'src str>>> {
+        expr(input).map(|(_, e)| eval(e))
+    }
+
     let input = "123";
-    println!("source: {:?}, parsed: {:?}", input, expr(input));
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
 
-    let input = "Hello + world";
-    println!("source: {:?}, parsed: {:?}", input, expr(input));
+    let input = "2 * pi";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
 
-    let input = "(123 + 456 ) + world";
-    println!("source: {:?}, parsed: {:?}", input, expr(input));
+    let input = "(123 + 456 ) + pi";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
 
-    let input = "car + cdr + cdr";
-    println!("source: {:?}, parsed: {:?}", input, expr(input));
+    let input = "10 - (100 + 1)";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
 
-    let input = "((1 + 2) + (3 + 4)) + 5 + 6";
-    println!("source: {:?}, parsed: {:?}", input, expr(input));
+    let input = "(3 + 7) / (2 + 3)";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+
+    let input = "sqrt(2) / 2";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+
+    let input = "sin(pi / 4)";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+
+    let input = "atan2(1, 1)";
+    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
 }
 
-fn advance_char(input: &str) -> &str {
-    let mut chars = input.chars();
-    chars.next();
-    chars.as_str()
-}
-
-fn peek_char(input: &str) -> Option<char> {
-    input.chars().next()
-}
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Expression<'src> {
     Ident(&'src str),
     NumLiteral(f64),
+    FnInvoke(&'src str, Vec<Expression<'src>>),
     Add(Box<Expression<'src>>, Box<Expression<'src>>),
+    Sub(Box<Expression<'src>>, Box<Expression<'src>>),
+    Mul(Box<Expression<'src>>, Box<Expression<'src>>),
+    Div(Box<Expression<'src>>, Box<Expression<'src>>),
 }
 
-fn expr(input: &str) -> Option<(&str, Expression)> {
-    if let Some(res) = add(input) {
-        return Some(res);
-    }
-
-    if let Some(res) = term(input) {
-        return Some(res);
-    }
-
-    None
-}
-
-fn paren(input: &str) -> Option<(&str, Expression)> {
-    let next_input = lparen(whitespace(input))?;
-
-    let (next_input, expr) = expr(next_input)?;
-
-    let next_input = rparen(whitespace(next_input))?;
-
-    Some((next_input, expr))
-}
-
-fn add_term(input: &str) -> Option<(&str, Expression)> {
-    let (next_input, lhs) = term(input)?;
-
-    let next_input = plus(whitespace(next_input))?;
-
-    Some((next_input, lhs))
-}
-
-fn add(mut input: &str) -> Option<(&str, Expression)> {
-    let mut left = None;
-    while let Some((next_input, expr)) = add_term(input) {
-        if let Some(prev_left) = left {
-            left = Some(Expression::Add(Box::new(prev_left), Box::new(expr)));
-        } else {
-            left = Some(expr);
-        }
-        input = next_input;
-    }
-
-    let left = left?;
-
-    let (next_input, rhs) = expr(input)?;
-
-    Some((next_input, Expression::Add(Box::new(left), Box::new(rhs))))
-}
-
-fn term(input: &str) -> Option<(&str, Expression)> {
-    if let Some(res) = paren(input) {
-        return Some(res);
-    }
-
-    if let Some(res) = token(input) {
-        return Some(res);
-    }
-
-    None
-}
-
-fn token(input: &str) -> Option<(&str, Expression)> {
-    if let Some(res) = ident(whitespace(input)) {
-        return Some(res);
-    }
-
-    if let Some(res) = number(whitespace(input)) {
-        return Some(res);
-    }
-
-    None
-}
-
-fn whitespace(mut input: &str) -> &str {
-    while matches!(peek_char(input), Some(' ')) {
-        input = advance_char(input);
-    }
-    input
-}
-
-fn ident(mut input: &str) -> Option<(&str, Expression)> {
-    let start = input;
-    if matches!(peek_char(input), Some(_x @ ('a'..='z' | 'A'..='Z'))) {
-        input = advance_char(input);
-        while matches!(
-            peek_char(input),
-            Some(_x @ ('a'..='z' | 'A'..='Z' | '0'..='9'))
-        ) {
-            input = advance_char(input);
-        }
-        Some((
-            input,
-            Expression::Ident(&start[..(start.len() - input.len())]),
+fn unary_fn(f: fn(f64) -> f64) -> impl Fn(Vec<Expression>) -> f64 {
+    move |args| {
+        f(eval(
+            args.into_iter().next().expect("function missing argument"),
         ))
-    } else {
-        None
     }
 }
 
-fn number(mut input: &str) -> Option<(&str, Expression)> {
-    let start = input;
-    if matches!(peek_char(input), Some(_x @ ('-' | '+' | '.' | '0'..='9'))) {
-        input = advance_char(input);
-        while matches!(peek_char(input), Some(_x @ ('.' | '0'..='9'))) {
-            input = advance_char(input);
+fn binary_fn(f: fn(f64, f64) -> f64) -> impl Fn(Vec<Expression>) -> f64 {
+    move |args| {
+        let mut args = args.into_iter();
+        let lhs = eval(args.next().expect("function missing the first argument"));
+        let rhs = eval(args.next().expect("function missing the second argument"));
+        f(lhs, rhs)
+    }
+}
+
+fn eval(expr: Expression) -> f64 {
+    use Expression::*;
+    match expr {
+        Ident("pi") => std::f64::consts::PI,
+        Ident(id) => panic!("Unknown name {id:?}"),
+        NumLiteral(n) => n,
+        FnInvoke("sqrt", args) => unary_fn(f64::sqrt)(args),
+        FnInvoke("sin", args) => unary_fn(f64::sin)(args),
+        FnInvoke("cos", args) => unary_fn(f64::cos)(args),
+        FnInvoke("tan", args) => unary_fn(f64::tan)(args),
+        FnInvoke("asin", args) => unary_fn(f64::asin)(args),
+        FnInvoke("acos", args) => unary_fn(f64::acos)(args),
+        FnInvoke("atan", args) => unary_fn(f64::atan)(args),
+        FnInvoke("atan2", args) => binary_fn(f64::atan2)(args),
+        FnInvoke("pow", args) => binary_fn(f64::powf)(args),
+        FnInvoke("exp", args) => unary_fn(f64::exp)(args),
+        FnInvoke("log", args) => binary_fn(f64::log)(args),
+        FnInvoke("log10", args) => unary_fn(f64::log10)(args),
+        FnInvoke(name, _) => {
+            panic!("Unknown function {name:?}")
         }
-        if let Ok(num) = start[..(start.len() - input.len())].parse::<f64>() {
-            Some((input, Expression::NumLiteral(num)))
-        } else {
-            None
-        }
-    } else {
-        None
+        Add(lhs, rhs) => eval(*lhs) + eval(*rhs),
+        Sub(lhs, rhs) => eval(*lhs) - eval(*rhs),
+        Mul(lhs, rhs) => eval(*lhs) * eval(*rhs),
+        Div(lhs, rhs) => eval(*lhs) / eval(*rhs),
     }
 }
 
-fn lparen(input: &str) -> Option<&str> {
-    if matches!(peek_char(input), Some('(')) {
-        Some(advance_char(input))
-    } else {
-        None
-    }
+fn space_delimited<'src, O, E>(
+    f: impl FnMut(&'src str) -> IResult<&'src str, O, E>,
+) -> impl FnMut(&'src str) -> IResult<&'src str, O, E>
+where
+    E: ParseError<&'src str>,
+{
+    delimited(multispace0, f, multispace0)
 }
 
-fn rparen(input: &str) -> Option<&str> {
-    if matches!(peek_char(input), Some(')')) {
-        Some(advance_char(input))
-    } else {
-        None
-    }
+fn factor(input: &str) -> IResult<&str, Expression> {
+    alt((number, func_call, ident, parens))(input)
 }
 
-fn plus(input: &str) -> Option<&str> {
-    if matches!(peek_char(input), Some('+')) {
-        Some(advance_char(input))
-    } else {
-        None
-    }
+fn func_call(input: &str) -> IResult<&str, Expression> {
+    let (r, ident) = space_delimited(identifier)(input)?;
+    let (r, args) = space_delimited(delimited(
+        tag("("),
+        many0(delimited(multispace0, expr, space_delimited(opt(tag(","))))),
+        tag(")"),
+    ))(r)?;
+    Ok((r, Expression::FnInvoke(ident, args)))
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+fn ident(input: &str) -> IResult<&str, Expression> {
+    let (r, res) = delimited(multispace0, identifier, multispace0)(input)?;
+    Ok((r, Expression::Ident(res)))
+}
 
-    #[test]
-    fn test_whitespace() {
-        assert_eq!(whitespace("    "), "");
-    }
+fn identifier(input: &str) -> IResult<&str, &str> {
+    recognize(pair(
+        alt((alpha1, tag("_"))),
+        many0(alt((alphanumeric1, tag("_")))),
+    ))(input)
+}
 
-    #[test]
-    fn test_ident() {
-        assert_eq!(ident("Adam"), Some(("", Expression::Ident("Adam"))));
-    }
+fn number(input: &str) -> IResult<&str, Expression> {
+    let (r, v) = delimited(multispace0, recognize_float, multispace0)(input)?;
+    Ok((
+        r,
+        Expression::NumLiteral(v.parse().map_err(|_| {
+            nom::Err::Error(nom::error::Error {
+                input,
+                code: nom::error::ErrorKind::Digit,
+            })
+        })?),
+    ))
+}
 
-    #[test]
-    fn test_number() {
-        assert_eq!(
-            number("123.45 "),
-            Some((" ", Expression::NumLiteral(123.45)))
-        );
-    }
+fn parens(input: &str) -> IResult<&str, Expression> {
+    delimited(
+        multispace0,
+        delimited(tag("("), expr, tag(")")),
+        multispace0,
+    )(input)
+}
+
+fn term(input: &str) -> IResult<&str, Expression> {
+    let (input, init) = factor(input)?;
+
+    fold_many0(
+        pair(space_delimited(alt((char('*'), char('/')))), factor),
+        move || init.clone(),
+        |acc, (op, val): (char, Expression)| match op {
+            '*' => Expression::Mul(Box::new(acc), Box::new(val)),
+            '/' => Expression::Div(Box::new(acc), Box::new(val)),
+            _ => panic!("Multiplicative expression should have '*' or '/' operator"),
+        },
+    )(input)
+}
+
+fn expr(input: &str) -> IResult<&str, Expression> {
+    let (input, init) = term(input)?;
+
+    fold_many0(
+        pair(space_delimited(alt((char('+'), char('-')))), term),
+        move || init.clone(),
+        |acc, (op, val): (char, Expression)| match op {
+            '+' => Expression::Add(Box::new(acc), Box::new(val)),
+            '-' => Expression::Sub(Box::new(acc), Box::new(val)),
+            _ => panic!("Additive expression should have '+' or '-' operator"),
+        },
+    )(input)
 }

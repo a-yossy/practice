@@ -1,8 +1,8 @@
 [package]
-name = "ruscal"
+name = "ruscal_pest"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-nom = "7.1.1"
-nom_locate = "4.1.0"
+pest = "2.5.6"
+pest_derive = "2.5.6"
