@@ -1,5 +1,7 @@
+use std::{collections::HashMap, io::Read};
+
 use nom::{
-    IResult,
+    Finish, IResult, Parser,
     branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, char, multispace0},
@@ -7,37 +9,59 @@ use nom::{
     error::ParseError,
     multi::{fold_many0, many0},
     number::complete::recognize_float,
-    sequence::{delimited, pair},
+    sequence::{delimited, pair, preceded, terminated},
 };
 
 fn main() {
-    fn ex_eval<'src>(input: &'src str) -> Result<f64, nom::Err<nom::error::Error<&'src str>>> {
-        expr(input).map(|(_, e)| eval(e))
+    let mut buf = String::new();
+    if !std::io::stdin().read_to_string(&mut buf).is_ok() {
+        panic!("Failed to read from stdin");
     }
+    let parsed_statements = match statements_finish(&buf) {
+        Ok(parsed_statements) => parsed_statements,
+        Err(e) => {
+            eprintln!("Parse error: {e:?}");
+            return;
+        }
+    };
 
-    let input = "123";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+    let mut variables = HashMap::new();
 
-    let input = "2 * pi";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+    eval_stmts(&parsed_statements, &mut variables);
+}
 
-    let input = "(123 + 456 ) + pi";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+type Variables = HashMap<String, f64>;
 
-    let input = "10 - (100 + 1)";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
-
-    let input = "(3 + 7) / (2 + 3)";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
-
-    let input = "sqrt(2) / 2";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
-
-    let input = "sin(pi / 4)";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
-
-    let input = "atan2(1, 1)";
-    println!("source: {:?}, parsed: {:?}", input, ex_eval(input));
+fn eval_stmts(stmts: &[Statement], variables: &mut Variables) {
+    for statement in stmts {
+        match statement {
+            Statement::Expression(expr) => {
+                println!("eval: {:?}", eval(expr, variables));
+            }
+            Statement::VarDef(name, expr) => {
+                variables.insert(name.to_string(), eval(expr, variables));
+            }
+            Statement::VarAssign(name, expr) => {
+                if !variables.contains_key(*name) {
+                    panic!("Variable is not defined");
+                }
+                variables.insert(name.to_string(), eval(expr, variables));
+            }
+            Statement::For {
+                loop_var,
+                start,
+                end,
+                stmts,
+            } => {
+                let start = eval(start, variables) as isize;
+                let end = eval(end, variables) as isize;
+                for i in start..end {
+                    variables.insert(loop_var.to_string(), i as f64);
+                    eval_stmts(stmts, variables);
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,55 +73,91 @@ enum Expression<'src> {
     Sub(Box<Expression<'src>>, Box<Expression<'src>>),
     Mul(Box<Expression<'src>>, Box<Expression<'src>>),
     Div(Box<Expression<'src>>, Box<Expression<'src>>),
+    If(
+        Box<Expression<'src>>,
+        Box<Expression<'src>>,
+        Option<Box<Expression<'src>>>,
+    ),
 }
 
-fn unary_fn(f: fn(f64) -> f64) -> impl Fn(Vec<Expression>) -> f64 {
-    move |args| {
+#[derive(Debug, PartialEq, Clone)]
+enum Statement<'src> {
+    Expression(Expression<'src>),
+    VarDef(&'src str, Expression<'src>),
+    VarAssign(&'src str, Expression<'src>),
+    For {
+        loop_var: &'src str,
+        start: Expression<'src>,
+        end: Expression<'src>,
+        stmts: Statements<'src>,
+    },
+}
+
+type Statements<'a> = Vec<Statement<'a>>;
+
+fn unary_fn(f: fn(f64) -> f64) -> impl Fn(&[Expression], &Variables) -> f64 {
+    move |args, variables| {
         f(eval(
             args.into_iter().next().expect("function missing argument"),
+            variables,
         ))
     }
 }
 
-fn binary_fn(f: fn(f64, f64) -> f64) -> impl Fn(Vec<Expression>) -> f64 {
-    move |args| {
+fn binary_fn(f: fn(f64, f64) -> f64) -> impl Fn(&[Expression], &Variables) -> f64 {
+    move |args, variables| {
         let mut args = args.into_iter();
-        let lhs = eval(args.next().expect("function missing the first argument"));
-        let rhs = eval(args.next().expect("function missing the second argument"));
+        let lhs = eval(
+            args.next().expect("function missing the first argument"),
+            variables,
+        );
+        let rhs = eval(
+            args.next().expect("function missing the second argument"),
+            variables,
+        );
         f(lhs, rhs)
     }
 }
 
-fn eval(expr: Expression) -> f64 {
+fn eval(expr: &Expression, vars: &Variables) -> f64 {
     use Expression::*;
     match expr {
         Ident("pi") => std::f64::consts::PI,
-        Ident(id) => panic!("Unknown name {id:?}"),
-        NumLiteral(n) => n,
-        FnInvoke("sqrt", args) => unary_fn(f64::sqrt)(args),
-        FnInvoke("sin", args) => unary_fn(f64::sin)(args),
-        FnInvoke("cos", args) => unary_fn(f64::cos)(args),
-        FnInvoke("tan", args) => unary_fn(f64::tan)(args),
-        FnInvoke("asin", args) => unary_fn(f64::asin)(args),
-        FnInvoke("acos", args) => unary_fn(f64::acos)(args),
-        FnInvoke("atan", args) => unary_fn(f64::atan)(args),
-        FnInvoke("atan2", args) => binary_fn(f64::atan2)(args),
-        FnInvoke("pow", args) => binary_fn(f64::powf)(args),
-        FnInvoke("exp", args) => unary_fn(f64::exp)(args),
-        FnInvoke("log", args) => binary_fn(f64::log)(args),
-        FnInvoke("log10", args) => unary_fn(f64::log10)(args),
+        Ident(id) => *vars.get(*id).expect("Variable not found"),
+        NumLiteral(n) => *n,
+        FnInvoke("sqrt", args) => unary_fn(f64::sqrt)(args, vars),
+        FnInvoke("sin", args) => unary_fn(f64::sin)(args, vars),
+        FnInvoke("cos", args) => unary_fn(f64::cos)(args, vars),
+        FnInvoke("tan", args) => unary_fn(f64::tan)(args, vars),
+        FnInvoke("asin", args) => unary_fn(f64::asin)(args, vars),
+        FnInvoke("acos", args) => unary_fn(f64::acos)(args, vars),
+        FnInvoke("atan", args) => unary_fn(f64::atan)(args, vars),
+        FnInvoke("atan2", args) => binary_fn(f64::atan2)(args, vars),
+        FnInvoke("pow", args) => binary_fn(f64::powf)(args, vars),
+        FnInvoke("exp", args) => unary_fn(f64::exp)(args, vars),
+        FnInvoke("log", args) => binary_fn(f64::log)(args, vars),
+        FnInvoke("log10", args) => unary_fn(f64::log10)(args, vars),
         FnInvoke(name, _) => {
             panic!("Unknown function {name:?}")
         }
-        Add(lhs, rhs) => eval(*lhs) + eval(*rhs),
-        Sub(lhs, rhs) => eval(*lhs) - eval(*rhs),
-        Mul(lhs, rhs) => eval(*lhs) * eval(*rhs),
-        Div(lhs, rhs) => eval(*lhs) / eval(*rhs),
+        Add(lhs, rhs) => eval(lhs, vars) + eval(rhs, vars),
+        Sub(lhs, rhs) => eval(lhs, vars) - eval(rhs, vars),
+        Mul(lhs, rhs) => eval(lhs, vars) * eval(rhs, vars),
+        Div(lhs, rhs) => eval(lhs, vars) / eval(rhs, vars),
+        If(cond, t_case, f_case) => {
+            if eval(cond, vars) != 0. {
+                eval(t_case, vars)
+            } else if let Some(f_case) = f_case {
+                eval(f_case, vars)
+            } else {
+                0.
+            }
+        }
     }
 }
 
 fn space_delimited<'src, O, E>(
-    f: impl FnMut(&'src str) -> IResult<&'src str, O, E>,
+    f: impl Parser<&'src str, O, E>,
 ) -> impl FnMut(&'src str) -> IResult<&'src str, O, E>
 where
     E: ParseError<&'src str>,
@@ -120,7 +180,7 @@ fn func_call(input: &str) -> IResult<&str, Expression> {
 }
 
 fn ident(input: &str) -> IResult<&str, Expression> {
-    let (r, res) = delimited(multispace0, identifier, multispace0)(input)?;
+    let (r, res) = space_delimited(identifier)(input)?;
     Ok((r, Expression::Ident(res)))
 }
 
@@ -132,7 +192,7 @@ fn identifier(input: &str) -> IResult<&str, &str> {
 }
 
 fn number(input: &str) -> IResult<&str, Expression> {
-    let (r, v) = delimited(multispace0, recognize_float, multispace0)(input)?;
+    let (r, v) = space_delimited(recognize_float)(input)?;
     Ok((
         r,
         Expression::NumLiteral(v.parse().map_err(|_| {
@@ -145,11 +205,7 @@ fn number(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parens(input: &str) -> IResult<&str, Expression> {
-    delimited(
-        multispace0,
-        delimited(tag("("), expr, tag(")")),
-        multispace0,
-    )(input)
+    space_delimited(delimited(tag("("), expr, tag(")")))(input)
 }
 
 fn term(input: &str) -> IResult<&str, Expression> {
@@ -166,7 +222,7 @@ fn term(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-fn expr(input: &str) -> IResult<&str, Expression> {
+fn num_expr(input: &str) -> IResult<&str, Expression> {
     let (input, init) = term(input)?;
 
     fold_many0(
@@ -178,4 +234,90 @@ fn expr(input: &str) -> IResult<&str, Expression> {
             _ => panic!("Additive expression should have '+' or '-' operator"),
         },
     )(input)
+}
+
+fn open_brace(input: &str) -> IResult<&str, ()> {
+    let (input, _) = space_delimited(char('{'))(input)?;
+    Ok((input, ()))
+}
+
+fn close_brace(input: &str) -> IResult<&str, ()> {
+    let (input, _) = space_delimited(char('}'))(input)?;
+    Ok((input, ()))
+}
+
+fn if_expr(input: &str) -> IResult<&str, Expression> {
+    let (input, _) = space_delimited(tag("if"))(input)?;
+    let (input, cond) = expr(input)?;
+    let (input, t_case) = delimited(open_brace, expr, close_brace)(input)?;
+    let (input, f_case) = opt(preceded(
+        space_delimited(tag("else")),
+        delimited(open_brace, expr, close_brace),
+    ))(input)?;
+
+    Ok((
+        input,
+        Expression::If(Box::new(cond), Box::new(t_case), f_case.map(Box::new)),
+    ))
+}
+
+fn expr(input: &str) -> IResult<&str, Expression> {
+    alt((if_expr, num_expr))(input)
+}
+
+fn var_def(input: &str) -> IResult<&str, Statement> {
+    let (input, _) = space_delimited(tag("var"))(input)?;
+    let (input, name) = space_delimited(identifier)(input)?;
+    let (input, _) = space_delimited(char('='))(input)?;
+    let (input, expr) = space_delimited(expr)(input)?;
+    Ok((input, Statement::VarDef(name, expr)))
+}
+
+fn var_assign(input: &str) -> IResult<&str, Statement> {
+    let (input, name) = space_delimited(identifier)(input)?;
+    let (input, _) = space_delimited(char('='))(input)?;
+    let (input, expr) = space_delimited(expr)(input)?;
+    Ok((input, Statement::VarAssign(name, expr)))
+}
+
+fn expr_statement(input: &str) -> IResult<&str, Statement> {
+    let (input, res) = expr(input)?;
+    Ok((input, Statement::Expression(res)))
+}
+
+fn for_statement(input: &str) -> IResult<&str, Statement> {
+    let (input, _) = space_delimited(tag("for"))(input)?;
+    let (input, loop_var) = space_delimited(identifier)(input)?;
+    let (input, _) = space_delimited(tag("in"))(input)?;
+    let (input, start) = space_delimited(expr)(input)?;
+    let (input, _) = space_delimited(tag("to"))(input)?;
+    let (input, end) = space_delimited(expr)(input)?;
+    let (input, stmts) = delimited(open_brace, statements, close_brace)(input)?;
+    Ok((
+        input,
+        Statement::For {
+            loop_var,
+            start,
+            end,
+            stmts,
+        },
+    ))
+}
+
+fn statement(input: &str) -> IResult<&str, Statement> {
+    alt((
+        for_statement,
+        terminated(alt((var_def, var_assign, expr_statement)), char(';')),
+    ))(input)
+}
+
+fn statements(input: &str) -> IResult<&str, Statements> {
+    let (input, stmts) = many0(statement)(input)?;
+    let (input, _) = opt(char(';'))(input)?;
+    Ok((input, stmts))
+}
+
+fn statements_finish(input: &str) -> Result<Statements, nom::error::Error<&str>> {
+    let (_, res) = statements(input).finish()?;
+    Ok(res)
 }
