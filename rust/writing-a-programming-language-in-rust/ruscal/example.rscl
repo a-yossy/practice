@@ -1,5 +1,14 @@
-for i in 0 to 10 {
-  for j in 0 to 10 {
-    i * 10 + j;
-  }
-}
+var i = i64(123);
+var f = f64(123.456);
+var s = "Hello, world!";
+
+print(i);
+dbg(i);
+print(f);
+dbg(f);
+print(s);
+dbg(s);
+
+print(i + f);
+print(i / f);
+print(s + s);
