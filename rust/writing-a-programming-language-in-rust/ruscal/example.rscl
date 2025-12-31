@@ -1,14 +1,7 @@
-var i = i64(123);
-var f = f64(123.456);
-var s = "Hello, world!";
+fn add_ints(a: i64, b: i64) -> i64 {
+  return a + b;
+}
 
-print(i);
-dbg(i);
-print(f);
-dbg(f);
-print(s);
-dbg(s);
+var res: i64 = add_ints(123, 456);
 
-print(i + f);
-print(i / f);
-print(s + s);
+print(res);
