@@ -1,14 +1,16 @@
 use std::{
+    fmt::Display,
     io::{BufReader, BufWriter, Read, Write},
     usize,
 };
 
 use nom::{
-    IResult,
+    IResult, Parser,
     branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, char, multispace0},
-    combinator::recognize,
+    combinator::{opt, recognize},
+    error::ParseError,
     multi::{fold_many0, many0},
     number::complete::recognize_float,
     sequence::{delimited, pair},
@@ -21,6 +23,10 @@ pub enum OpCode {
     LoadLiteral,
     Copy,
     Add,
+    Sub,
+    Mul,
+    Div,
+    Call,
 }
 
 macro_rules! impl_op_from {
@@ -39,7 +45,7 @@ macro_rules! impl_op_from {
     };
 }
 
-impl_op_from!(LoadLiteral, Copy, Add);
+impl_op_from!(LoadLiteral, Copy, Add, Sub, Mul, Div, Call);
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -75,8 +81,94 @@ fn deserialize_size(reader: &mut impl Read) -> std::io::Result<usize> {
     Ok(u32::from_le_bytes(buf) as usize)
 }
 
+fn serialize_str(s: &str, writer: &mut impl Write) -> std::io::Result<()> {
+    serialize_size(s.len(), writer)?;
+    writer.write_all(s.as_bytes())?;
+    Ok(())
+}
+
+fn deserialize_str(reader: &mut impl Read) -> std::io::Result<String> {
+    let mut buf = vec![0u8; deserialize_size(reader)?];
+    reader.read_exact(&mut buf)?;
+    let s = String::from_utf8(buf).unwrap();
+    Ok(s)
+}
+
+#[repr(u8)]
+enum ValueKind {
+    F64,
+    Str,
+}
+
+#[derive(Debug, Clone)]
+enum Value {
+    F64(f64),
+    Str(String),
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::F64(value) => write!(f, "{value}"),
+            Self::Str(value) => write!(f, "{value:?}"),
+        }
+    }
+}
+
+impl Value {
+    fn kind(&self) -> ValueKind {
+        match self {
+            Self::F64(_) => ValueKind::F64,
+            Self::Str(_) => ValueKind::Str,
+        }
+    }
+
+    fn serialize(&self, writer: &mut impl Write) -> std::io::Result<()> {
+        let kind = self.kind() as u8;
+        writer.write_all(&[kind])?;
+        match self {
+            Self::F64(value) => {
+                writer.write_all(&value.to_le_bytes())?;
+            }
+            Self::Str(value) => serialize_str(value, writer)?,
+        }
+        Ok(())
+    }
+
+    #[allow(non_upper_case_globals)]
+    fn deserialize(reader: &mut impl Read) -> std::io::Result<Self> {
+        const F64: u8 = ValueKind::F64 as u8;
+        const Str: u8 = ValueKind::Str as u8;
+
+        let mut kind_buf = [0u8; 1];
+        reader.read_exact(&mut kind_buf)?;
+        match kind_buf[0] {
+            F64 => {
+                let mut buf = [0u8; std::mem::size_of::<f64>()];
+                reader.read_exact(&mut buf)?;
+                Ok(Value::F64(f64::from_le_bytes(buf)))
+            }
+            Str => Ok(Value::Str(deserialize_str(reader)?)),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "ValueKind {} does not match to any known value",
+                    kind_buf[0]
+                ),
+            )),
+        }
+    }
+
+    fn coerce_f64(&self) -> f64 {
+        match self {
+            Self::F64(value) => *value,
+            _ => panic!("Coercion failed: {self:?} cannot be coerced to f64"),
+        }
+    }
+}
+
 struct Compiler {
-    literals: Vec<f64>,
+    literals: Vec<Value>,
     instructions: Vec<Instruction>,
     target_stack: Vec<usize>,
 }
@@ -90,7 +182,7 @@ impl Compiler {
         }
     }
 
-    fn add_literal(&mut self, value: f64) -> u8 {
+    fn add_literal(&mut self, value: Value) -> u8 {
         let ret = self.literals.len();
         self.literals.push(value);
         ret as u8
@@ -114,7 +206,7 @@ impl Compiler {
     fn write_literals(&self, writer: &mut impl Write) -> std::io::Result<()> {
         serialize_size(self.literals.len(), writer)?;
         for value in &self.literals {
-            writer.write_all(&value.to_le_bytes())?;
+            value.serialize(writer)?;
         }
         Ok(())
     }
@@ -130,13 +222,13 @@ impl Compiler {
     fn compile_expr(&mut self, ex: &Expression) -> usize {
         match ex {
             Expression::NumLiteral(num) => {
-                let id = self.add_literal(*num);
+                let id = self.add_literal(Value::F64(*num));
                 self.add_inst(OpCode::LoadLiteral, id);
                 self.target_stack.push(id as usize);
                 self.target_stack.len() - 1
             }
             Expression::Ident("pi") => {
-                let id = self.add_literal(std::f64::consts::PI as f64);
+                let id = self.add_literal(Value::F64(std::f64::consts::PI));
                 self.add_inst(OpCode::LoadLiteral, id);
                 self.target_stack.push(id as usize);
                 self.target_stack.len() - 1
@@ -144,17 +236,41 @@ impl Compiler {
             Expression::Ident(id) => {
                 panic!("Unknown identifier {id:?}");
             }
-            Expression::Add(lhs, rhs) => {
-                let lhs = self.compile_expr(lhs);
-                let rhs = self.compile_expr(rhs);
-                self.add_copy_inst(lhs);
-                self.add_copy_inst(rhs);
-                self.target_stack.pop();
-                self.add_inst(OpCode::Add, 0);
+            Expression::Add(lhs, rhs) => self.bin_op(OpCode::Add, lhs, rhs),
+            Expression::Sub(lhs, rhs) => self.bin_op(OpCode::Sub, lhs, rhs),
+            Expression::Mul(lhs, rhs) => self.bin_op(OpCode::Mul, lhs, rhs),
+            Expression::Div(lhs, rhs) => self.bin_op(OpCode::Div, lhs, rhs),
+            Expression::FnInvoke(name, args) => {
+                let name = self.add_literal(Value::Str(name.to_string()));
+                let args = args
+                    .iter()
+                    .map(|arg| self.compile_expr(arg))
+                    .collect::<Vec<_>>();
+
+                self.add_inst(OpCode::LoadLiteral, name);
+                self.target_stack.push(0);
+                for arg in &args {
+                    self.add_copy_inst(*arg);
+                }
+
+                self.add_inst(OpCode::Call, args.len() as u8);
+                self.target_stack
+                    .resize(self.target_stack.len() - args.len(), 0);
                 self.target_stack.len() - 1
             }
-            _ => todo!(),
         }
+    }
+
+    fn bin_op(&mut self, op: OpCode, lhs: &Expression, rhs: &Expression) -> usize {
+        let lhs = self.compile_expr(lhs);
+        let rhs = self.compile_expr(rhs);
+        self.add_copy_inst(lhs);
+        self.add_copy_inst(rhs);
+        self.add_inst(op, 0);
+        self.target_stack.pop();
+        self.target_stack.pop();
+        self.target_stack.push(usize::MAX);
+        self.target_stack.len() - 1
     }
 
     fn disasm(&self, writer: &mut impl Write) -> std::io::Result<()> {
@@ -172,8 +288,8 @@ impl Compiler {
                     "  [{i}] {:?} {} ({:?})",
                     inst.op, inst.arg0, self.literals[inst.arg0 as usize]
                 )?,
-                Copy => writeln!(writer, "  [{i}] {:?} {}", inst.op, inst.arg0)?,
-                Add => writeln!(writer, "  [{i}] Add")?,
+                Copy | Call => writeln!(writer, "  [{i}] {:?} {}", inst.op, inst.arg0)?,
+                _ => writeln!(writer, "  [{i}] {:?}", inst.op)?,
             }
         }
 
@@ -208,7 +324,7 @@ fn write_program(
 }
 
 struct ByteCode {
-    literals: Vec<f64>,
+    literals: Vec<Value>,
     instructions: Vec<Instruction>,
 }
 
@@ -223,9 +339,7 @@ impl ByteCode {
     fn read_literals(&mut self, reader: &mut impl Read) -> std::io::Result<()> {
         let num_literals = deserialize_size(reader)?;
         for _ in 0..num_literals {
-            let mut buf = [0u8; std::mem::size_of::<i64>()];
-            reader.read_exact(&mut buf)?;
-            self.literals.push(f64::from_le_bytes(buf));
+            self.literals.push(Value::deserialize(reader)?);
         }
         Ok(())
     }
@@ -239,27 +353,79 @@ impl ByteCode {
         Ok(())
     }
 
-    fn interpret(&self) -> Option<f64> {
+    fn interpret(&self) -> Option<Value> {
         let mut stack = vec![];
 
         for (ip, instruction) in self.instructions.iter().enumerate() {
             dprintln!("interpret[{ip}]: {instruction:?} stack: {stack:?}");
             match instruction.op {
                 OpCode::LoadLiteral => {
-                    stack.push(self.literals[instruction.arg0 as usize]);
+                    stack.push(self.literals[instruction.arg0 as usize].clone());
                 }
                 OpCode::Copy => {
-                    stack.push(stack[stack.len() - instruction.arg0 as usize - 1]);
+                    stack.push(stack[stack.len() - instruction.arg0 as usize - 1].clone());
                 }
-                OpCode::Add => {
-                    let rhs = stack.pop().expect("Stack underflow");
-                    let lhs = stack.pop().expect("Stack undeflow");
-                    stack.push(lhs + rhs);
+                OpCode::Add => self.interpret_bin_op(&mut stack, |lhs, rhs| lhs + rhs),
+                OpCode::Sub => self.interpret_bin_op(&mut stack, |lhs, rhs| lhs - rhs),
+                OpCode::Mul => self.interpret_bin_op(&mut stack, |lhs, rhs| lhs * rhs),
+                OpCode::Div => self.interpret_bin_op(&mut stack, |lhs, rhs| lhs / rhs),
+                OpCode::Call => {
+                    let args = &stack[stack.len() - instruction.arg0 as usize..];
+                    let fname = &stack[stack.len() - instruction.arg0 as usize - 1];
+                    let Value::Str(fname) = fname else {
+                        panic!("Function name shall be a string: {fname:?}");
+                    };
+                    let res = match fname as &str {
+                        "sqrt" => unary_fn(f64::sqrt)(args),
+                        "sin" => unary_fn(f64::sin)(args),
+                        "cos" => unary_fn(f64::cos)(args),
+                        "tan" => unary_fn(f64::tan)(args),
+                        "asin" => unary_fn(f64::asin)(args),
+                        "acos" => unary_fn(f64::acos)(args),
+                        "atan" => unary_fn(f64::atan)(args),
+                        "atan2" => binary_fn(f64::atan2)(args),
+                        "pow" => binary_fn(f64::powf)(args),
+                        "exp" => unary_fn(f64::exp)(args),
+                        "log" => binary_fn(f64::log)(args),
+                        "log10" => unary_fn(f64::log10)(args),
+                        _ => panic!("Unknown function name {fname:?}"),
+                    };
+                    stack.resize(stack.len() - instruction.arg0 as usize - 1, Value::F64(0.));
+                    stack.push(res);
                 }
             }
         }
 
         stack.pop()
+    }
+
+    fn interpret_bin_op(&self, stack: &mut Vec<Value>, op: impl FnOnce(f64, f64) -> f64) {
+        let rhs = stack.pop().expect("Stack undeflow").coerce_f64();
+        let lhs = stack.pop().expect("Stack underflow").coerce_f64();
+        stack.push(Value::F64(op(lhs, rhs)));
+    }
+}
+
+fn unary_fn(f: fn(f64) -> f64) -> impl Fn(&[Value]) -> Value {
+    move |args| {
+        let arg = args.first().expect("function missing argument");
+        let ret = f(arg.coerce_f64());
+        Value::F64(ret)
+    }
+}
+
+fn binary_fn(f: fn(f64, f64) -> f64) -> impl Fn(&[Value]) -> Value {
+    move |args| {
+        let mut args = args.into_iter();
+        let lhs = args
+            .next()
+            .expect("function missing the first argument")
+            .coerce_f64();
+        let rhs = args
+            .next()
+            .expect("function missing the second argument")
+            .coerce_f64();
+        Value::F64(f(lhs, rhs))
     }
 }
 
@@ -270,7 +436,7 @@ fn read_program(reader: &mut impl Read) -> std::io::Result<ByteCode> {
     Ok(bytecode)
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let Some(args) = parse_args() else {
         return Ok(());
     };
@@ -317,11 +483,34 @@ fn main() -> std::io::Result<()> {
 enum Expression<'src> {
     Ident(&'src str),
     NumLiteral(f64),
+    FnInvoke(&'src str, Vec<Expression<'src>>),
     Add(Box<Expression<'src>>, Box<Expression<'src>>),
+    Sub(Box<Expression<'src>>, Box<Expression<'src>>),
+    Mul(Box<Expression<'src>>, Box<Expression<'src>>),
+    Div(Box<Expression<'src>>, Box<Expression<'src>>),
 }
 
-fn term(i: &str) -> IResult<&str, Expression> {
-    alt((number, ident, parens))(i)
+fn space_delimited<'src, O, E>(
+    f: impl Parser<&'src str, O, E>,
+) -> impl FnMut(&'src str) -> IResult<&'src str, O, E>
+where
+    E: ParseError<&'src str>,
+{
+    delimited(multispace0, f, multispace0)
+}
+
+fn factor(i: &str) -> IResult<&str, Expression> {
+    alt((number, func_call, ident, parens))(i)
+}
+
+fn func_call(i: &str) -> IResult<&str, Expression> {
+    let (r, ident) = space_delimited(identifier)(i)?;
+    let (r, args) = space_delimited(delimited(
+        tag("("),
+        many0(delimited(multispace0, expr, space_delimited(opt(tag(","))))),
+        tag(")"),
+    ))(r)?;
+    Ok((r, Expression::FnInvoke(ident, args)))
 }
 
 fn ident(input: &str) -> IResult<&str, Expression> {
@@ -357,12 +546,30 @@ fn parens(i: &str) -> IResult<&str, Expression> {
     )(i)
 }
 
+fn term(i: &str) -> IResult<&str, Expression> {
+    let (i, init) = factor(i)?;
+
+    fold_many0(
+        pair(space_delimited(alt((char('*'), char('/')))), factor),
+        move || init.clone(),
+        |acc, (op, val): (char, Expression)| match op {
+            '*' => Expression::Mul(Box::new(acc), Box::new(val)),
+            '/' => Expression::Div(Box::new(acc), Box::new(val)),
+            _ => panic!("Multiplicative expression should have '*' or '/' operator"),
+        },
+    )(i)
+}
+
 fn expr(i: &str) -> IResult<&str, Expression> {
     let (i, init) = term(i)?;
 
     fold_many0(
-        pair(delimited(multispace0, char('+'), multispace0), term),
+        pair(space_delimited(alt((char('+'), char('-')))), term),
         move || init.clone(),
-        |acc, (_op, val): (char, Expression)| Expression::Add(Box::new(acc), Box::new(val)),
+        |acc, (op, val): (char, Expression)| match op {
+            '+' => Expression::Add(Box::new(acc), Box::new(val)),
+            '-' => Expression::Sub(Box::new(acc), Box::new(val)),
+            _ => panic!("Additive expression should have '+' or '-' operator"),
+        },
     )(i)
 }
