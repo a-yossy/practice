@@ -13,6 +13,7 @@ pub struct Args {
     pub source: Option<String>,
     pub output: String,
     pub disasm: bool,
+    pub show_ast: bool,
     pub debug_output: bool,
 }
 
@@ -23,6 +24,7 @@ impl Args {
             source: None,
             output: "".to_string(),
             disasm: false,
+            show_ast: false,
             debug_output: false,
         }
     }
@@ -41,6 +43,7 @@ pub fn parse_args() -> Option<Args> {
     let mut source = None;
     let mut output = None;
     let mut disasm = false;
+    let mut show_ast = false;
     let mut show_help = false;
     let mut args_is_empty = true;
     let mut debug_output = false;
@@ -59,6 +62,7 @@ pub fn parse_args() -> Option<Args> {
             }
             "-R" => run_mode = RunMode::CompileAndRun,
             "-d" => disasm = true,
+            "-a" => show_ast = true,
             "-D" => {
                 DEBUG.store(true, std::sync::atomic::Ordering::Relaxed);
                 debug_output = true;
@@ -85,6 +89,7 @@ pub fn parse_args() -> Option<Args> {
         source,
         output: output.unwrap_or_else(|| "bytecode.bin".to_string()),
         disasm,
+        show_ast,
         debug_output,
     })
 }
