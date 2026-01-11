@@ -63,6 +63,7 @@ pub fn parse_args() -> Option<Args> {
             "-R" => run_mode = RunMode::CompileAndRun,
             "-d" => disasm = true,
             "-a" => show_ast = true,
+            "-t" => run_mode = RunMode::TypeCheck,
             "-D" => {
                 DEBUG.store(true, std::sync::atomic::Ordering::Relaxed);
                 debug_output = true;
