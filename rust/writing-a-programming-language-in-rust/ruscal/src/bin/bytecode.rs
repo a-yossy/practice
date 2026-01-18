@@ -1398,6 +1398,7 @@ fn tc_coerce_type<'src>(
         (F64, I64) => F64,
         (I64, I64) => I64,
         (Str, Str) => Str,
+        (Coro, Coro) => Coro,
         _ => {
             return Err(TypeCheckError::new(
                 format!("{value:?} cannot be assigned to {target:?}"),
@@ -2128,6 +2129,7 @@ fn type_decl(i: Span) -> IResult<Span, TypeDecl> {
             "i64" => TypeDecl::I64,
             "f64" => TypeDecl::F64,
             "str" => TypeDecl::Str,
+            "cofn" => TypeDecl::Coro,
             _ => {
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     td,
