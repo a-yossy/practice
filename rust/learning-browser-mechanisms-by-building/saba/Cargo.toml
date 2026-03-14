@@ -1,3 +1,4 @@
+workspace = { members = ["saba_core"] }
 [package]
 name = "saba"
 version = "0.1.0"
