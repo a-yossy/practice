@@ -354,7 +354,7 @@ impl Iterator for HtmlTokenizer {
                     }
 
                     self.reconsume = true;
-                    self.state = State::BeforeAttributeValue;
+                    self.state = State::BeforeAttributeName;
                 }
                 State::SelfClosingStartTag => {
                     if c == '>' {
@@ -431,7 +431,7 @@ impl Iterator for HtmlTokenizer {
                         .buf
                         .chars()
                         .nth(0)
-                        .expect("self.buf should have a least 1 char");
+                        .expect("self.buf should have at least 1 char");
                     self.buf.remove(0);
                     return Some(HtmlToken::Char(c));
                 }

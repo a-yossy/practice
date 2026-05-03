@@ -45,7 +45,7 @@ impl HttpClient {
         request.push_str(&path);
         request.push_str(" HTTP/1.1\n");
 
-        request.push_str("HOST: ");
+        request.push_str("Host: ");
         request.push_str(&host);
         request.push('\n');
         request.push_str("Accept: text/html\n");

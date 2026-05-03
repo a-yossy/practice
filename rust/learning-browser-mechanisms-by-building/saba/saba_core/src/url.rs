@@ -52,7 +52,7 @@ impl Url {
         Ok(self.clone())
     }
 
-    fn is_http(&mut self) -> bool {
+    fn is_http(&self) -> bool {
         if self.url.contains("http://") {
             return true;
         }

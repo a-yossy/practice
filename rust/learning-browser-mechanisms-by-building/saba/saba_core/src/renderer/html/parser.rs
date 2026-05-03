@@ -153,12 +153,6 @@ impl HtmlParser {
                 .unwrap()
                 .borrow_mut()
                 .set_next_sibling(Some(node.clone()));
-            node.borrow_mut().set_previous_sibling(Rc::downgrade(
-                &current
-                    .borrow()
-                    .first_child()
-                    .expect("failed to get a first child"),
-            ));
         } else {
             current.borrow_mut().set_first_child(Some(node.clone()));
         }
@@ -219,6 +213,12 @@ impl HtmlParser {
                             if tag == "html" {
                                 self.insert_element(tag, attributes.to_vec());
                                 self.mode = InsertionMode::BeforeHead;
+                                token = self.t.next();
+                                continue;
+                            }
+                        }
+                        Some(HtmlToken::EndTag { ref tag }) => {
+                            if tag != "head" || tag != "body" || tag != "html" || tag != "br" {
                                 token = self.t.next();
                                 continue;
                             }
@@ -418,31 +418,35 @@ impl HtmlParser {
                         continue;
                     }
                 },
-                InsertionMode::Text => match token {
-                    Some(HtmlToken::Eof) | None => {
-                        return self.window.clone();
-                    }
-                    Some(HtmlToken::EndTag { ref tag }) => {
-                        if tag == "style" {
-                            self.pop_until(ElementKind::Style);
-                            self.mode = self.original_insertion_mode;
+                InsertionMode::Text => {
+                    match token {
+                        Some(HtmlToken::Eof) | None => {
+                            return self.window.clone();
+                        }
+                        Some(HtmlToken::EndTag { ref tag }) => {
+                            if tag == "style" {
+                                self.pop_until(ElementKind::Style);
+                                self.mode = self.original_insertion_mode;
+                                token = self.t.next();
+                                continue;
+                            }
+                            if tag == "script" {
+                                self.pop_until(ElementKind::Script);
+                                self.mode = self.original_insertion_mode;
+                                token = self.t.next();
+                                continue;
+                            }
+                        }
+                        Some(HtmlToken::Char(c)) => {
+                            self.insert_char(c);
                             token = self.t.next();
                             continue;
                         }
-                        if tag == "script" {
-                            self.pop_until(ElementKind::Script);
-                            self.mode = self.original_insertion_mode;
-                            token = self.t.next();
-                            continue;
-                        }
+                        _ => {}
                     }
-                    Some(HtmlToken::Char(c)) => {
-                        self.insert_char(c);
-                        token = self.t.next();
-                        continue;
-                    }
-                    _ => {}
-                },
+
+                    self.mode = self.original_insertion_mode;
+                }
                 InsertionMode::AfterBody => {
                     match token {
                         Some(HtmlToken::Char(_c)) => {
@@ -600,7 +604,7 @@ mod tests {
     #[test]
     fn test_multiple_nodes() {
         let html =
-            "<html><head></head><body><p><a foo = bar>text</a></p></body></html>".to_string();
+            "<html><head></head><body><p><a foo=bar>text</a></p></body></html>".to_string();
         let t = HtmlTokenizer::new(html);
         let window = HtmlParser::new(t).construct_tree();
         let document = window.borrow().document();

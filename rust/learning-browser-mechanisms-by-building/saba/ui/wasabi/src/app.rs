@@ -334,10 +334,9 @@ impl WasabiUI {
                         )
                         .is_err()
                     {
-                        return Err(Error::InvalidUI("failed to draw s string".to_string()));
+                        return Err(Error::InvalidUI("failed to draw a string".to_string()));
                     }
                 }
-                _ => {}
             }
         }
 

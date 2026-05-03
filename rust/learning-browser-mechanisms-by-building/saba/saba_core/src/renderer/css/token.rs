@@ -178,7 +178,7 @@ impl Iterator for CssTokenizer {
                     continue;
                 }
                 _ => {
-                    unimplemented!("char {c} is not supported yes");
+                    unimplemented!("char {c} is not supported yet");
                 }
             };
 

@@ -177,7 +177,7 @@ impl Color {
         }
 
         let name = match code {
-            "000000" => "black".to_string(),
+            "#000000" => "black".to_string(),
             "#c0c0c0" => "silver".to_string(),
             "#808080" => "gray".to_string(),
             "#ffffff" => "white".to_string(),

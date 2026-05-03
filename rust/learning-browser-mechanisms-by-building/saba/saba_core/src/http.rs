@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_invalid() {
-        let raw = "HTTP/1.1 200 Ok".to_string();
+        let raw = "HTTP/1.1 200 OK".to_string();
         assert!(HttpResponse::new(raw).is_err());
     }
 }

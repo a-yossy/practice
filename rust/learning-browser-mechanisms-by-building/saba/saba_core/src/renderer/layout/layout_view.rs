@@ -164,9 +164,9 @@ fn build_layout_tree(
             }
         }
 
-        if next_sibling.is_none() && original_next_sibling.is_some() {
+        if next_sibling.is_none() && n.borrow().next_sibling().is_some() {
             let mut original_dom_node = original_next_sibling
-                .expect("next sibling should exist")
+                .expect("first child should exist")
                 .borrow()
                 .next_sibling();
 
@@ -235,7 +235,7 @@ mod tests {
         assert!(root.is_some());
         assert_eq!(
             LayoutObjectKind::Block,
-            root.clone().expect("root sholud exist").borrow().kind()
+            root.clone().expect("root should exist").borrow().kind()
         );
         assert_eq!(
             NodeKind::Element(Element::new("body", Vec::new())),
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_display_none() {
-        let html = "<html><head><style>body{display:none;}</style></head><body>text</body></htnml>"
+        let html = "<html><head><style>body{display:none;}</style></head><body>text</body></html>"
             .to_string();
         let layout_view = create_layout_view(html);
 
