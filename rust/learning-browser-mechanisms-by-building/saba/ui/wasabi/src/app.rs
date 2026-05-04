@@ -112,12 +112,15 @@ impl WasabiUI {
         handle_url: fn(String) -> Result<HttpResponse, Error>,
     ) -> Result<(), Error> {
         loop {
-            self.handle_mouse_input()?;
+            self.handle_mouse_input(handle_url)?;
             self.handle_key_input(handle_url)?;
         }
     }
 
-    fn handle_mouse_input(&mut self) -> Result<(), Error> {
+    fn handle_mouse_input(
+        &mut self,
+        handle_url: fn(String) -> Result<HttpResponse, Error>,
+    ) -> Result<(), Error> {
         if let Some(MouseEvent { button, position }) = Api::get_mouse_cursor_info() {
             self.window.flush_area(self.cursor.rect());
             self.cursor.set_position(position.x, position.y);
@@ -151,6 +154,19 @@ impl WasabiUI {
                 }
 
                 self.input_mode = InputMode::Normal;
+
+                let position_in_content_area = (
+                    relative_pos.0,
+                    relative_pos.1 - TITLE_BAR_HEIGHT - TOOLBAR_HEIGHT,
+                );
+                let page = self.browser.borrow().current_page();
+                let next_destination = page.borrow_mut().clicked(position_in_content_area);
+
+                if let Some(url) = next_destination {
+                    self.input_url = url.clone();
+                    self.update_address_bar()?;
+                    self.start_navigation(handle_url, url)?;
+                }
             }
         }
 

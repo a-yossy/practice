@@ -278,6 +278,8 @@ impl LayoutObject {
                 }
             }
         }
+
+        self.size = size;
     }
 
     pub fn compute_position(

@@ -226,7 +226,6 @@ impl HtmlParser {
                         Some(HtmlToken::Eof) | None => {
                             return self.window.clone();
                         }
-                        _ => {}
                     }
                     self.insert_element("html", Vec::new());
                     self.mode = InsertionMode::BeforeHead;

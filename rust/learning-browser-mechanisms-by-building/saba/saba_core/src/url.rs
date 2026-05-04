@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_url_host_port_path_searchquery() {
+    fn test_url_host_port_path_searchpart() {
         let url = "http://example.com:8888/index.html?a=123&b=456".to_string();
         let expected = Ok(Url {
             url: url.clone(),

@@ -5,6 +5,8 @@ use crate::renderer::css::cssom::CssParser;
 use crate::renderer::css::cssom::StyleSheet;
 use crate::renderer::css::token::CssTokenizer;
 use crate::renderer::dom::api::get_style_content;
+use crate::renderer::dom::node::ElementKind;
+use crate::renderer::dom::node::NodeKind;
 use crate::renderer::dom::node::Window;
 use crate::renderer::html::parser::HtmlParser;
 use crate::renderer::html::token::HtmlTokenizer;
@@ -45,6 +47,25 @@ impl Page {
         self.set_layout_view();
 
         self.paint_tree();
+    }
+
+    pub fn clicked(&self, position: (i64, i64)) -> Option<String> {
+        let view = match &self.layout_view {
+            Some(v) => v,
+            None => return None,
+        };
+
+        if let Some(n) = view.find_node_by_position(position) {
+            if let Some(parent) = n.borrow().parent().upgrade() {
+                if let NodeKind::Element(e) = parent.borrow().node_kind() {
+                    if e.kind() == ElementKind::A {
+                        return e.get_attribute("href");
+                    }
+                }
+            }
+        }
+
+        None
     }
 
     fn create_frame(&mut self, html: String) {

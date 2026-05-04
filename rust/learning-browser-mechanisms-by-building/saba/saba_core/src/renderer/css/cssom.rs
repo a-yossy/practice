@@ -161,7 +161,7 @@ impl CssParser {
         match token {
             CssToken::Ident(ref ident) => ident.to_string(),
             _ => {
-                panic!("Parse error {token:?} is an unexpected token.");
+                panic!("Parse error: {token:?} is an unexpected token.");
             }
         }
     }
