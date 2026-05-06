@@ -1,0 +1,9 @@
+[package]
+name = "abstract-factory"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[workspace]
+members = ["gui", "windows-gui", "macos-gui", "app", "app-dyn"]

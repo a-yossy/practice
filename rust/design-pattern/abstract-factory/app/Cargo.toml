@@ -1,0 +1,9 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gui = { path = "../gui" }
+windows-gui = { path = "../windows-gui" }
+macos-gui = { path = "../macos-gui" }
