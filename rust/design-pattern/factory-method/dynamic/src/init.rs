@@ -3,7 +3,7 @@ use crate::html_gui::HtmlDialog;
 use crate::windows_gui::WindowsDialog;
 
 pub fn initialize() -> &'static dyn Dialog {
-    if cfg!(Windows) {
+    if cfg!(windows) {
         println!("-- Windows detected, creating Windows GUI --");
         &WindowsDialog
     } else {
